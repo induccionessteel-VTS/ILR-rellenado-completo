@@ -13,7 +13,6 @@ import {
   FileSignature,
   FileText,
   ShieldCheck,
-  Package,
 } from 'lucide-react';
 import {
   MEDICAL_QUESTIONS,
@@ -512,7 +511,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
         </div>
       )}
 
-      {/* SECCIÓN DE DESCARGAS INDIVIDUALES Y COMBINADAS */}
+      {/* SECCIÓN DE DESCARGAS INDIVIDUALES (PAQUETE COMPLETO ELIMINADO) */}
       {generatedResults && (
         <div className="p-6 rounded-2xl bg-slate-900 border-2 border-emerald-500/50 shadow-2xl space-y-4 animate-in fade-in duration-300">
           <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
@@ -520,12 +519,12 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
             <div>
               <h4 className="text-base font-bold text-white">¡Documentos Generados y Calibrados con Éxito!</h4>
               <p className="text-xs text-slate-400">
-                Los documentos están listos para descargarse por separado o en paquete completo unificado.
+                Los documentos han sido generados y están listos para su descarga individual.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
             {/* Opción 1: Descargar Acta DS 44 por separado */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
@@ -591,39 +590,6 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                 </a>
               </div>
             </div>
-
-            {/* Opción 3: Descargar Paquete Completo Unificado */}
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold mb-1">
-                  <Package className="w-4 h-4" />
-                  <span>Paquete Completo (23 Páginas)</span>
-                </div>
-                <div className="font-semibold text-white text-sm">Ambos Documentos Unidos</div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Acta DS 44 + Consentimiento en un solo archivo PDF ({Math.round(generatedResults.mergedSize / 1024)} KB)
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={generatedResults.mergedBlobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1 transition"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  Ver
-                </a>
-                <a
-                  href={generatedResults.mergedBlobUrl}
-                  download={`Documentos_Completos_DS44_${formData.rut.replace(/[^0-9kK]/g, '')}.pdf`}
-                  className="flex-1 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Descargar Ambos
-                </a>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -643,7 +609,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
           ) : (
             <>
               <FileCheck2 className="w-5 h-5" />
-              <span>Generar y Firmar Documentos (Descarga Individual y Combinada)</span>
+              <span>Generar y Firmar Documentos Individuales</span>
             </>
           )}
         </button>
