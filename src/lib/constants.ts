@@ -276,14 +276,14 @@ export const DEFAULT_COORDINATES: CoordinateConfig = {
         cargo: { x: 68, y: 395 },
       },
       recuadroInferior: {
-        firma: { x: 350, y: 105, width: 170, height: 75 },
-        nombre: { x: 320, y: 85 },
-        rut: { x: 320, y: 73 },
+        firma: { x: 295, y: 100, width: 140, height: 60 }, // Desplazado a la izquierda, completamente fuera del recuadro HUELLA
+        nombre: { x: 295, y: 85 },
+        rut: { x: 295, y: 73 },
       },
-      nombre: { x: 320, y: 85 }, // Dentro del recuadro principal justo debajo de la firma (size: 9)
-      rut: { x: 320, y: 73 },
+      nombre: { x: 295, y: 85 }, // Alineado a la izquierda dentro del recuadro del trabajador
+      rut: { x: 295, y: 73 },
       cargo: { x: 68, y: 395 },
-      firma: { x: 350, y: 105, width: 170, height: 75 }, // Lado derecho, respetando recuadro Huella
+      firma: { x: 295, y: 100, width: 140, height: 60 },
     },
     normasSeguridad: {
       norma_01: { x: 58, y: 590 },

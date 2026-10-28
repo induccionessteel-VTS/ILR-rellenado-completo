@@ -397,7 +397,7 @@ export async function fillActaDs44(
   });
 
   // 2. RECUADRO INFERIOR (Firma y Datos)
-  // Inserción de la firma digital capturada en x: 350, y: 105 (width: 170, height: 75)
+  // Inserción de la firma digital en x: 295, y: 100 (width: 140, height: 60) - Desplazada a la izquierda para no tapar HUELLA
   if (formData.firmaPngBase64) {
     const signatureBytes = base64ToUint8Array(formData.firmaPngBase64);
     let signatureImage;
@@ -407,7 +407,7 @@ export async function fillActaDs44(
       signatureImage = await pdfDoc.embedPng(signatureBytes);
     }
 
-    const sigCfg = p22Cfg.recuadroInferior?.firma ?? p22Cfg.firma;
+    const sigCfg = p22Cfg.recuadroInferior?.firma ?? p22Cfg.firma ?? { x: 295, y: 100, width: 140, height: 60 };
     page22.drawImage(signatureImage, {
       x: sigCfg.x,
       y: sigCfg.y,
@@ -416,9 +416,9 @@ export async function fillActaDs44(
     });
   }
 
-  // Nombre dentro del recuadro en x: 320, y: 85 (size: 9)
-  const nomBoxX = p22Cfg.recuadroInferior?.nombre.x ?? p22Cfg.nombre.x;
-  const nomBoxY = p22Cfg.recuadroInferior?.nombre.y ?? p22Cfg.nombre.y;
+  // Nombre dentro del recuadro a la izquierda en x: 295, y: 85 (size: 9)
+  const nomBoxX = p22Cfg.recuadroInferior?.nombre.x ?? p22Cfg.nombre?.x ?? 295;
+  const nomBoxY = p22Cfg.recuadroInferior?.nombre.y ?? p22Cfg.nombre?.y ?? 85;
   page22.drawText(formData.nombre.toUpperCase(), {
     x: nomBoxX,
     y: nomBoxY,
@@ -427,9 +427,9 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  // RUT dentro del recuadro en x: 320, y: 73 (size: 8.5)
-  const rutBoxX = p22Cfg.recuadroInferior?.rut.x ?? p22Cfg.rut.x;
-  const rutBoxY = p22Cfg.recuadroInferior?.rut.y ?? 73;
+  // RUT dentro del recuadro a la izquierda en x: 295, y: 73 (size: 8.5)
+  const rutBoxX = p22Cfg.recuadroInferior?.rut.x ?? p22Cfg.rut?.x ?? 295;
+  const rutBoxY = p22Cfg.recuadroInferior?.rut.y ?? p22Cfg.rut?.y ?? 73;
   page22.drawText(formData.rut, {
     x: rutBoxX,
     y: rutBoxY,

@@ -299,9 +299,9 @@ const COORDENADAS = {
         cargo: { x: 68, y: 395 },
       },
       recuadroInferior: {
-        firma: { x: 350, y: 105, width: 170, height: 75 },
-        nombre: { x: 320, y: 85 },
-        rut: { x: 320, y: 73 },
+        firma: { x: 295, y: 100, width: 140, height: 60 },
+        nombre: { x: 295, y: 85 },
+        rut: { x: 295, y: 73 },
       },
     },
     normasSeguridad: {

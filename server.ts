@@ -81,7 +81,7 @@ Reglas de alineación exacta:
 
 - En Acta DS 44 Página 22:
   - Párrafo superior (Texto legal): Nombre en x=160, y=426, RUT en x=95, y=410, Cargo "Operario de Aseo" en x=68, y=395.
-  - Recuadro inferior: Firma del trabajador en x=350, y=105, width=170, height=75. Nombre dentro del recuadro en x=320, y=85 (size: 9) y RUT en x=320, y=73 (size: 8.5).
+  - Recuadro inferior: Firma del trabajador en x=295, y=100, width=140, height=60 (a la izquierda para no tapar el recuadro HUELLA). Nombre dentro del recuadro en x=295, y=85 (size: 9) y RUT en x=295, y=73 (size: 8.5).
 
 - En Acta DS 44 Páginas 8 y 9 (Cuestionario Médico):
   - Respuestas SI/NO con 'X' negra en casillas correspondientes (Epilepsia y=131, Lumbago y=114, Hipertensión y=96, Diabetes y=79, Asma y=646, Claustrofobia y=628, Inmunodepresora y=608, Fractura/TEC y=506, Tratamientos y=483, Alergia y=386).
