@@ -1,0 +1,8 @@
+{
+  "name": "LegalDoc Signer & Auditor",
+  "description": "Sistema full-stack para llenado automático, firma digital y auditoría en Supabase de Acta IRL DS 44 y Consentimiento de Alcohol y Drogas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
