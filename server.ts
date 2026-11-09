@@ -76,8 +76,8 @@ Reglas de alineación exacta:
   - 'Área:' en y=528 (área 'Operaciones' en x=84, y=528).
   - 'Hora de Inicio:' e 'Hora de Termino:' debajo de los títulos: hora inicio '08:00' en x=440, y=515; hora término '18:00' en x=525, y=515.
   - 'Nombre contacto de emergencia:' en x=230, y=505 (desplazado a la derecha para no tocar títulos).
-  - 'Teléfono contacto de emergencia:' en x=230, y=492.
   - Casilla 'Persona Nueva': "X" negra (size: 16) centrada dentro de la casilla blanca en x=200, y=464.
+  - Sección 'Persona Sensible al Riesgo': Casilla 'SI' en x=375, y=438; Casilla 'NO' en x=495, y=438; Subcategorías: Discapacidad en x=168, y=418; Embarazadas en x=298, y=418; Periodo de lactancia en x=427, y=418; Adolescentes en x=544, y=418; Adultos mayores en x=168, y=404; Otra condición en x=427, y=398.
 
 - En Acta DS 44 Página 22:
   - Párrafo superior (Texto legal): Nombre en x=160, y=426, RUT en x=95, y=410, Cargo "Operario de Aseo" en x=68, y=395.

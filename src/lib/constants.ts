@@ -326,6 +326,18 @@ export const DEFAULT_COORDINATES: CoordinateConfig = {
       contactoEmergencia: { x: 230, y: 505 }, // Desplazado a la derecha para no tocar títulos
       telefonoEmergencia: { x: 230, y: 492 },
       personaNuevaX: { x: 200, y: 464, size: 16 }, // 'X' negra centrada en la casilla blanca (desplazada a la izquierda)
+      sensibleRiesgo: {
+        si: { x: 375, y: 438 },
+        no: { x: 495, y: 438 },
+        categorias: {
+          discapacidad: { x: 168, y: 418 },
+          embarazadas: { x: 298, y: 418 },
+          lactancia: { x: 427, y: 418 },
+          adolescentes: { x: 544, y: 418 },
+          adultos_mayores: { x: 168, y: 404 },
+          otra_condicion: { x: 427, y: 398 },
+        },
+      },
     },
     page22: {
       parrafoSuperior: {
@@ -365,9 +377,40 @@ export const DEFAULT_COORDINATES: CoordinateConfig = {
     nombre: { x: 220, y: 304 },
     rut: { x: 155, y: 280 },
     fecha: { x: 165, y: 256 },
-    firma: { x: 175, y: 195, width: 145, height: 50 },
+    firma: { x: 175, y: 185, width: 140, height: 48 }, // Desplazada y ajustada para holgura de fecha
   },
 };
+
+/**
+ * Limpia y normaliza el RUT para la nomenclatura de archivos:
+ * Estrictamente sin puntos y con guión (ej: '12.345.678-9' -> '12345678-9')
+ */
+export function formatRutForFilename(rut: string): string {
+  if (!rut) return '';
+  const clean = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length > 1) {
+    return `${clean.slice(0, -1)}-${clean.slice(-1)}`;
+  }
+  return clean;
+}
+
+/**
+ * Genera la nomenclatura estricta para exportación de documentos:
+ * - IRL: IRL_[PrimerApellido]_[PrimerNombre]_[RUT].pdf
+ * - CAD: CAD_[PrimerApellido]_[PrimerNombre]_[RUT].pdf
+ * - COMPLETO: COMPLETO_[PrimerApellido]_[PrimerNombre]_[RUT].pdf
+ */
+export function buildDocumentFileName(
+  prefix: 'IRL' | 'CAD' | 'COMPLETO',
+  primerApellido: string,
+  primerNombre: string,
+  rut: string
+): string {
+  const cleanApellido = primerApellido.trim().toUpperCase();
+  const cleanNombre = primerNombre.trim().toUpperCase();
+  const cleanRut = formatRutForFilename(rut);
+  return `${prefix}_${cleanApellido}_${cleanNombre}_${cleanRut}.pdf`;
+}
 
 export function formatRUT(rutRaw: string): string {
   const clean = rutRaw.replace(/[^0-9kK]/g, '').toUpperCase();

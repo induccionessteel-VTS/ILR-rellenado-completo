@@ -453,6 +453,44 @@ export async function fillActaDs44(
   });
 
   // ---------------------------------------------------------------------------
+  // PÁGINA 1: PERSONA SENSIBLE AL RIESGO (SI / NO y Categoría Específica)
+  // ---------------------------------------------------------------------------
+  const riesgoCfg = p1Cfg.sensibleRiesgo || DEFAULT_COORDINATES.actaDs44.page1.sensibleRiesgo;
+  if (riesgoCfg) {
+    if (formData.esSensibleRiesgo === true) {
+      // 'X' en la casilla SI
+      page1.drawText('X', {
+        x: riesgoCfg.si.x,
+        y: riesgoCfg.si.y,
+        size: 13,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+
+      // 'X' en la subcategoría seleccionada
+      if (formData.categoriaSensibleRiesgo && riesgoCfg.categorias[formData.categoriaSensibleRiesgo]) {
+        const catCoord = riesgoCfg.categorias[formData.categoriaSensibleRiesgo];
+        page1.drawText('X', {
+          x: catCoord.x,
+          y: catCoord.y,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+      }
+    } else {
+      // 'X' en la casilla NO
+      page1.drawText('X', {
+        x: riesgoCfg.no.x,
+        y: riesgoCfg.no.y,
+        size: 13,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // PÁGINAS 8 Y 9 (Índices 7 y 8): CUESTIONARIO MÉDICO DEL TRABAJADOR
   // ---------------------------------------------------------------------------
   for (const q of MEDICAL_QUESTIONS) {
@@ -601,20 +639,21 @@ export async function fillConsentimiento(
   const fechaReal = formData.fecha || STATIC_VALUES.fecha;
   const fechaRealLong = formatDateChileLong(fechaReal);
 
-  // Máscara blanca para tapar exactamente '31 de Julio 2026'
+  // Máscara blanca ajustada exactamente para tapar solo el texto '31 de Julio 2026'
+  // sin invadir ni tapar los trazos adyacentes de la firma que inician en x >= 243
   pageHoja1.drawRectangle({
-    x: 158,
-    y: 278,
-    width: 130,
-    height: 16,
+    x: 163,
+    y: 283.5,
+    width: 78,
+    height: 9.0,
     color: rgb(1, 1, 1),
   });
 
   // Inyección de la fecha real del IRL en formato chileno oficial (negro rgb(0,0,0))
   pageHoja1.drawText(fechaRealLong, {
-    x: 160,
-    y: 282,
-    size: 8.5,
+    x: 164,
+    y: 284.5,
+    size: 7.2,
     font,
     color: rgb(0, 0, 0),
   });

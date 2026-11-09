@@ -20,9 +20,10 @@ import {
   STATIC_VALUES,
   formatRUT,
   validateRUT,
+  buildDocumentFileName,
 } from '../lib/constants';
 import { generateSignedDocuments } from '../lib/pdf-processor';
-import { AuditoriaDocumento, CoordinateConfig, GeneratedDocumentsResult, WorkerFormData } from '../lib/types';
+import { AuditoriaDocumento, CoordinateConfig, GeneratedDocumentsResult, WorkerFormData, CategoriaSensibleRiesgo } from '../lib/types';
 import { SignatureCanvas, SignatureCanvasHandle } from './SignatureCanvas';
 
 interface Props {
@@ -43,10 +44,14 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
   }, []);
 
   const [formData, setFormData] = useState<WorkerFormData>({
+    primerNombre: '',
+    primerApellido: '',
     nombre: '',
     rut: '',
     contactoEmergencia: '',
     telefonoEmergencia: '',
+    esSensibleRiesgo: false,
+    categoriaSensibleRiesgo: '',
     cargo: STATIC_VALUES.cargoPage1,
     fecha: STATIC_VALUES.fecha,
     area: STATIC_VALUES.area,
@@ -86,10 +91,14 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
   const loadDemoData = () => {
     setFormData({
+      primerNombre: 'CARLOS ALBERTO',
+      primerApellido: 'GONZÁLEZ ROJAS',
       nombre: 'CARLOS ALBERTO GONZÁLEZ ROJAS',
       rut: '12.345.678-5',
       contactoEmergencia: 'MARÍA ROJAS VENEGAS (Madre)',
       telefonoEmergencia: '+56 9 8765 4321',
+      esSensibleRiesgo: false,
+      categoriaSensibleRiesgo: '',
       cargo: STATIC_VALUES.cargoPage1,
       fecha: STATIC_VALUES.fecha,
       area: STATIC_VALUES.area,
@@ -115,8 +124,18 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     setErrorMessage(null);
     setGeneratedResults(null);
 
-    if (!formData.nombre.trim()) {
-      setErrorMessage('Por favor ingrese el Nombre Completo del trabajador.');
+    if (!formData.primerNombre.trim()) {
+      setErrorMessage('Por favor ingrese el Primer Nombre del trabajador.');
+      return;
+    }
+
+    if (!formData.primerApellido.trim()) {
+      setErrorMessage('Por favor ingrese el Primer Apellido del trabajador.');
+      return;
+    }
+
+    if (formData.esSensibleRiesgo && !formData.categoriaSensibleRiesgo) {
+      setErrorMessage('Ha marcado "Sí" en Persona Sensible al Riesgo; por favor seleccione una categoría específica.');
       return;
     }
 
@@ -247,14 +266,42 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nombre Completo del Trabajador <span className="text-red-400">*</span>
+              Primer Nombre (o Nombres) <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="Ej: JUAN CARLOS PÉREZ SOTO"
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              placeholder="Ej: CARLOS ALBERTO"
+              value={formData.primerNombre}
+              onChange={(e) => {
+                const primerNombre = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  primerNombre,
+                  nombre: `${primerNombre.trim()} ${prev.primerApellido.trim()}`.trim(),
+                }));
+              }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Primer Apellido (o Apellidos) <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Ej: GONZÁLEZ ROJAS"
+              value={formData.primerApellido}
+              onChange={(e) => {
+                const primerApellido = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  primerApellido,
+                  nombre: `${prev.primerNombre.trim()} ${primerApellido.trim()}`.trim(),
+                }));
+              }}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
           </div>
@@ -286,6 +333,15 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Nombre Completo Consolidado
+            </label>
+            <div className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 font-medium truncate">
+              {formData.nombre || <span className="text-slate-500 italic">Se genera automáticamente</span>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
               Nombre Contacto de Emergencia
             </label>
             <input
@@ -309,6 +365,90 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
           </div>
+        </div>
+
+        {/* APARTADO CONDICIONAL: PERSONA SENSIBLE AL RIESGO */}
+        <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-400" />
+                ¿Es una persona sensible al riesgo?
+              </span>
+              <p className="text-[11px] text-slate-400">
+                Se inyectará la cruz "X" en la sección de la Página 1 del Acta IRL DS 44 (casilla SI o NO).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, esSensibleRiesgo: false, categoriaSensibleRiesgo: '' }))}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  !formData.esSensibleRiesgo
+                    ? 'bg-slate-700 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>No</span>
+                {!formData.esSensibleRiesgo && <span className="text-[10px] text-emerald-400">✓</span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, esSensibleRiesgo: true, categoriaSensibleRiesgo: prev.categoriaSensibleRiesgo || 'discapacidad' }))}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  formData.esSensibleRiesgo
+                    ? 'bg-amber-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Sí</span>
+                {formData.esSensibleRiesgo && <span className="text-[10px] text-white">✓</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* Opciones condicionales si el usuario selecciona 'Sí' */}
+          {formData.esSensibleRiesgo && (
+            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30 space-y-2 animate-in fade-in duration-200">
+              <span className="text-xs font-semibold text-amber-300 block">
+                Seleccione la categoría de riesgo (coincidente con el Acta IRL DS 44):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                {[
+                  { id: 'discapacidad', label: 'Discapacidad' },
+                  { id: 'embarazadas', label: 'Embarazadas' },
+                  { id: 'lactancia', label: 'Periodo de lactancia' },
+                  { id: 'adolescentes', label: 'Adolescentes' },
+                  { id: 'adultos_mayores', label: 'Adultos mayores' },
+                  { id: 'otra_condicion', label: 'Personas con otra condición analógica' },
+                ].map((cat) => {
+                  const isSelected = formData.categoriaSensibleRiesgo === cat.id;
+                  return (
+                    <label
+                      key={cat.id}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                        isSelected
+                          ? 'bg-amber-950/40 border-amber-500 text-white font-semibold'
+                          : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="categoriaSensibleRiesgo"
+                        value={cat.id}
+                        checked={isSelected}
+                        onChange={() => setFormData((prev) => ({ ...prev, categoriaSensibleRiesgo: cat.id as any }))}
+                        className="text-amber-500 focus:ring-amber-500 bg-slate-950 border-slate-700"
+                      />
+                      <span>{cat.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -524,8 +664,8 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-            {/* Opción 1: Descargar Acta DS 44 por separado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {/* Opción 1: Descargar Acta DS 44 (IRL) */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
                 <div className="flex items-center gap-2 text-sky-400 text-xs font-bold mb-1">
@@ -533,8 +673,8 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                   <span>Documento 1 (22 Páginas)</span>
                 </div>
                 <div className="font-semibold text-white text-sm">Acta IRL D.S. N° 44</div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  VELTS-D-ACN212-HS-0012 • Ficha médica & 13 normas con X ({Math.round(generatedResults.ds44Size / 1024)} KB)
+                <div className="text-[11px] text-sky-300 font-mono mt-1 break-all">
+                  {buildDocumentFileName('IRL', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -549,16 +689,16 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                 </a>
                 <a
                   href={generatedResults.ds44BlobUrl}
-                  download={`Acta_IRL_DS44_${formData.rut.replace(/[^0-9kK]/g, '')}.pdf`}
+                  download={buildDocumentFileName('IRL', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
                   className="flex-1 py-1.5 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow transition"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Descargar DS 44
+                  Descargar IRL
                 </a>
               </div>
             </div>
 
-            {/* Opción 2: Descargar Consentimiento por separado */}
+            {/* Opción 2: Descargar Consentimiento (CAD) */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold mb-1">
@@ -566,8 +706,8 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                   <span>Documento 2 (2 Páginas)</span>
                 </div>
                 <div className="font-semibold text-white text-sm">Consentimiento Alcohol/Drogas</div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Anexo 01 & 02 Minera Centinela • Fecha dinámica & firma ({Math.round(generatedResults.consentimientoSize / 1024)} KB)
+                <div className="text-[11px] text-emerald-300 font-mono mt-1 break-all">
+                  {buildDocumentFileName('CAD', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -582,11 +722,44 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                 </a>
                 <a
                   href={generatedResults.consentimientoBlobUrl}
-                  download={`Consentimiento_Alcohol_Drogas_${formData.rut.replace(/[^0-9kK]/g, '')}.pdf`}
+                  download={buildDocumentFileName('CAD', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
                   className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow transition"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Descargar Consentimiento
+                  Descargar CAD
+                </a>
+              </div>
+            </div>
+
+            {/* Opción 3: Descargar Paquete Completo Fusionado (24 Páginas) */}
+            <div className="bg-slate-950 p-4 rounded-xl border border-indigo-500/40 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold mb-1">
+                  <FileCheck2 className="w-4 h-4" />
+                  <span>Paquete Completo (24 Páginas)</span>
+                </div>
+                <div className="font-semibold text-white text-sm">Ambos Fusionados</div>
+                <div className="text-[11px] text-indigo-300 font-mono mt-1 break-all">
+                  {buildDocumentFileName('COMPLETO', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={generatedResults.mergedBlobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Ver
+                </a>
+                <a
+                  href={generatedResults.mergedBlobUrl}
+                  download={buildDocumentFileName('COMPLETO', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
+                  className="flex-1 py-1.5 px-3 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Descargar Ambos
                 </a>
               </div>
             </div>

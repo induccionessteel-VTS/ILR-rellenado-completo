@@ -10,7 +10,7 @@ import {
   loadRealConsentimientoTemplate,
   mergeDocuments,
 } from './pdf-processor';
-import { formatRUT, STATIC_VALUES, validateRUT, NORMAS_SEGURIDAD_ITEMS } from './constants';
+import { formatRUT, STATIC_VALUES, validateRUT, NORMAS_SEGURIDAD_ITEMS, formatRutForFilename, buildDocumentFileName } from './constants';
 import { WorkerFormData } from './types';
 
 // PNG mínimo válido 1x1 transparente para pruebas
@@ -47,15 +47,36 @@ test('loadRealConsentimientoTemplate loads the official 2-page Consentimiento do
   assert.equal(doc.getPageCount(), 2, 'Consentimiento document must have 2 pages (Hoja 1 Anexo 01 + Hoja 2 Anexo 02)');
 });
 
+test('formatRutForFilename strips dots and formats cleanly with hyphen', () => {
+  assert.equal(formatRutForFilename('12.345.678-9'), '12345678-9');
+  assert.equal(formatRutForFilename('12.345.678-k'), '12345678-K');
+  assert.equal(formatRutForFilename('123456789'), '12345678-9');
+  assert.equal(formatRutForFilename('12345678-5'), '12345678-5');
+});
+
+test('buildDocumentFileName strictly generates IRL and CAD file names', () => {
+  const fileNameIrl = buildDocumentFileName('IRL', 'González', 'Carlos', '12.345.678-9');
+  assert.equal(fileNameIrl, 'IRL_GONZÁLEZ_CARLOS_12345678-9.pdf');
+
+  const fileNameCad = buildDocumentFileName('CAD', 'Pérez', 'Juan', '9.876.543-K');
+  assert.equal(fileNameCad, 'CAD_PÉREZ_JUAN_9876543-K.pdf');
+
+  const fileNameCompleto = buildDocumentFileName('COMPLETO', 'Rojas', 'María', '14.892.341-8');
+  assert.equal(fileNameCompleto, 'COMPLETO_ROJAS_MARÍA_14892341-8.pdf');
+});
+
 test('fillActaDs44 throws error if PDF has less than 22 pages', async () => {
   const shortDoc = await PDFDocument.create();
   shortDoc.addPage([612, 792]);
 
   const dummyData: WorkerFormData = {
-    nombre: 'TEST',
+    primerNombre: 'TEST',
+    primerApellido: 'USER',
+    nombre: 'TEST USER',
     rut: '12.345.678-5',
     contactoEmergencia: '',
     telefonoEmergencia: '',
+    esSensibleRiesgo: false,
     cargo: STATIC_VALUES.cargoPage1,
     fecha: STATIC_VALUES.fecha,
     area: STATIC_VALUES.area,
@@ -85,10 +106,14 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
   assert.equal(STATIC_VALUES.horaTermino, '18:00', 'Default horaTermino must be 18:00');
 
   const formData: WorkerFormData = {
+    primerNombre: 'CARLOS ALBERTO',
+    primerApellido: 'GONZÁLEZ ROJAS',
     nombre: 'CARLOS ALBERTO GONZÁLEZ ROJAS',
     rut: '12.345.678-5',
     contactoEmergencia: 'MARCELA ROJAS (Madre)',
     telefonoEmergencia: '+56 9 8765 4321',
+    esSensibleRiesgo: true,
+    categoriaSensibleRiesgo: 'discapacidad',
     cargo: STATIC_VALUES.cargoPage1,
     fecha: STATIC_VALUES.fecha,
     area: STATIC_VALUES.area,
@@ -134,10 +159,13 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
 
 test('generateSignedDocuments produces separate individual documents and combined bundle', async () => {
   const formData: WorkerFormData = {
+    primerNombre: 'JUAN',
+    primerApellido: 'PÉREZ MORALES',
     nombre: 'JUAN PÉREZ MORALES',
     rut: '12.345.678-5',
     contactoEmergencia: 'MARÍA PÉREZ',
     telefonoEmergencia: '+56 9 1234 5678',
+    esSensibleRiesgo: false,
     cargo: STATIC_VALUES.cargoPage1,
     fecha: STATIC_VALUES.fecha,
     area: STATIC_VALUES.area,

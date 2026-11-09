@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CoordinateConfig } from '../lib/types';
+import { CoordinateConfig, CategoriaSensibleRiesgo } from '../lib/types';
 import { DEFAULT_COORDINATES, MEDICAL_QUESTIONS, NORMAS_SEGURIDAD_ITEMS } from '../lib/constants';
 import {
   Target,
@@ -178,10 +178,23 @@ export function CoordinateCalibrator({ coordinates, onCoordinatesChange }: Props
     const next = JSON.parse(JSON.stringify(coordinates)) as CoordinateConfig;
 
     if (selectedDocPage === 'acta_p1') {
-      const p1 = next.actaDs44.page1 as any;
-      if (p1[selectedField]) {
-        p1[selectedField].x = x;
-        p1[selectedField].y = y;
+      if (selectedField.startsWith('riesgo_')) {
+        if (!next.actaDs44.page1.sensibleRiesgo) {
+          next.actaDs44.page1.sensibleRiesgo = JSON.parse(JSON.stringify(DEFAULT_COORDINATES.actaDs44.page1.sensibleRiesgo));
+        }
+        const sr = next.actaDs44.page1.sensibleRiesgo!;
+        if (selectedField === 'riesgo_si') sr.si = { x, y };
+        else if (selectedField === 'riesgo_no') sr.no = { x, y };
+        else {
+          const catKey = selectedField.replace('riesgo_', '') as CategoriaSensibleRiesgo;
+          sr.categorias[catKey] = { x, y };
+        }
+      } else {
+        const p1 = next.actaDs44.page1 as any;
+        if (p1[selectedField]) {
+          p1[selectedField].x = x;
+          p1[selectedField].y = y;
+        }
       }
     } else if (selectedDocPage === 'acta_p22') {
       const p22 = next.actaDs44.page22 as any;
@@ -206,6 +219,13 @@ export function CoordinateCalibrator({ coordinates, onCoordinatesChange }: Props
   // Obtener coordenada actual del campo
   const getCurrentCoord = (): { x: number; y: number } => {
     if (selectedDocPage === 'acta_p1') {
+      if (selectedField.startsWith('riesgo_')) {
+        const sr = coordinates.actaDs44.page1.sensibleRiesgo || DEFAULT_COORDINATES.actaDs44.page1.sensibleRiesgo;
+        if (selectedField === 'riesgo_si') return sr?.si || { x: 375, y: 438 };
+        if (selectedField === 'riesgo_no') return sr?.no || { x: 495, y: 438 };
+        const catKey = selectedField.replace('riesgo_', '') as CategoriaSensibleRiesgo;
+        return sr?.categorias?.[catKey] || { x: 168, y: 418 };
+      }
       return (coordinates.actaDs44.page1 as any)[selectedField] || { x: 0, y: 0 };
     }
     if (selectedDocPage === 'acta_p22') {
@@ -484,6 +504,14 @@ export const CALIBRATED_COORDINATES = ${JSON.stringify(coordinates, null, 2)};`;
                   <option value="horaTermino">Hora Término ("18:00")</option>
                   <option value="contactoEmergencia">Contacto Emergencia</option>
                   <option value="telefonoEmergencia">Teléfono Emergencia</option>
+                  <option value="riesgo_si">Riesgo: Casilla "SI"</option>
+                  <option value="riesgo_no">Riesgo: Casilla "NO"</option>
+                  <option value="riesgo_discapacidad">Riesgo: Discapacidad</option>
+                  <option value="riesgo_embarazadas">Riesgo: Embarazadas</option>
+                  <option value="riesgo_lactancia">Riesgo: Periodo de lactancia</option>
+                  <option value="riesgo_adolescentes">Riesgo: Adolescentes</option>
+                  <option value="riesgo_adultos_mayores">Riesgo: Adultos mayores</option>
+                  <option value="riesgo_otra_condicion">Riesgo: Otra condición</option>
                 </>
               )}
 
@@ -674,33 +702,81 @@ export const CALIBRATED_COORDINATES = ${JSON.stringify(coordinates, null, 2)};`;
             {/* OVERLAYS INTERACTIVOS SEGÚN LA PÁGINA SELECCIONADA        */}
             {/* ========================================================= */}
 
-            {/* PÁGINA 1: DATOS Y X GIGANTE */}
-            {selectedDocPage === 'acta_p1' &&
-              Object.entries(coordinates.actaDs44.page1).map(([key, val]: [string, any]) => {
-                const isSelected = key === selectedField;
-                const leftPx = val.x * scale;
-                const topPx = displayHeight - val.y * scale;
+            {/* PÁGINA 1: DATOS, X GIGANTE Y PERSONA SENSIBLE AL RIESGO */}
+            {selectedDocPage === 'acta_p1' && (
+              <>
+                {Object.entries(coordinates.actaDs44.page1)
+                  .filter(([key, val]: [string, any]) => key !== 'sensibleRiesgo' && val && typeof val.x === 'number')
+                  .map(([key, val]: [string, any]) => {
+                    const isSelected = key === selectedField;
+                    const leftPx = val.x * scale;
+                    const topPx = displayHeight - val.y * scale;
 
-                return (
-                  <div
-                    key={key}
-                    style={{ left: `${leftPx}px`, top: `${topPx}px` }}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-all ${
-                      isSelected ? 'z-30 scale-110' : 'z-10 opacity-75'
-                    }`}
-                  >
-                    <div
-                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shadow ${
-                        isSelected
-                          ? 'bg-red-600 text-white ring-2 ring-red-300 animate-pulse'
-                          : 'bg-sky-700 text-white'
-                      }`}
-                    >
-                      {key === 'personaNuevaX' ? '❌ X GIGANTE' : key}
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <div
+                        key={key}
+                        style={{ left: `${leftPx}px`, top: `${topPx}px` }}
+                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-all ${
+                          isSelected ? 'z-30 scale-110' : 'z-10 opacity-75'
+                        }`}
+                      >
+                        <div
+                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shadow ${
+                            isSelected
+                              ? 'bg-red-600 text-white ring-2 ring-red-300 animate-pulse'
+                              : 'bg-sky-700 text-white'
+                          }`}
+                        >
+                          {key === 'personaNuevaX' ? '❌ X GIGANTE' : key}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {/* Overlays para Persona Sensible al Riesgo */}
+                {(() => {
+                  const sr = coordinates.actaDs44.page1.sensibleRiesgo || DEFAULT_COORDINATES.actaDs44.page1.sensibleRiesgo;
+                  if (!sr) return null;
+                  const markers = [
+                    { id: 'riesgo_si', label: 'Riesgo SI', coord: sr.si },
+                    { id: 'riesgo_no', label: 'Riesgo NO', coord: sr.no },
+                    { id: 'riesgo_discapacidad', label: 'Discapacidad', coord: sr.categorias?.discapacidad },
+                    { id: 'riesgo_embarazadas', label: 'Embarazadas', coord: sr.categorias?.embarazadas },
+                    { id: 'riesgo_lactancia', label: 'Lactancia', coord: sr.categorias?.lactancia },
+                    { id: 'riesgo_adolescentes', label: 'Adolescentes', coord: sr.categorias?.adolescentes },
+                    { id: 'riesgo_adultos_mayores', label: 'Adultos Mayores', coord: sr.categorias?.adultos_mayores },
+                    { id: 'riesgo_otra_condicion', label: 'Otra Condición', coord: sr.categorias?.otra_condicion },
+                  ];
+
+                  return markers.map((m) => {
+                    if (!m.coord) return null;
+                    const isSelected = m.id === selectedField;
+                    const leftPx = m.coord.x * scale;
+                    const topPx = displayHeight - m.coord.y * scale;
+
+                    return (
+                      <div
+                        key={m.id}
+                        style={{ left: `${leftPx}px`, top: `${topPx}px` }}
+                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-all ${
+                          isSelected ? 'z-30 scale-110' : 'z-10 opacity-70'
+                        }`}
+                      >
+                        <div
+                          className={`flex items-center gap-1 px-1 py-0.5 rounded text-[8px] font-bold whitespace-nowrap shadow ${
+                            isSelected
+                              ? 'bg-amber-500 text-white ring-2 ring-amber-300 animate-pulse'
+                              : 'bg-amber-700 text-amber-100'
+                          }`}
+                        >
+                          {m.label}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </>
+            )}
 
             {/* PÁGINA 8 Y 9: PREGUNTAS MÉDICAS */}
             {['acta_p8', 'acta_p9'].includes(selectedDocPage) &&

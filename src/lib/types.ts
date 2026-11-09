@@ -20,12 +20,26 @@ export interface NormaSeguridadItem {
   coord: { x: number; y: number };
 }
 
+export type CategoriaSensibleRiesgo =
+  | 'discapacidad'
+  | 'embarazadas'
+  | 'lactancia'
+  | 'adolescentes'
+  | 'adultos_mayores'
+  | 'otra_condicion';
+
 export interface WorkerFormData {
-  // Datos dinámicos del trabajador
-  nombre: string;
+  // Datos individuales del trabajador (Paso 1)
+  primerNombre: string;
+  primerApellido: string;
+  nombre: string; // Nombre completo (ej: `${primerNombre} ${primerApellido}`)
   rut: string;
   contactoEmergencia: string;
   telefonoEmergencia: string;
+
+  // Persona Sensible al Riesgo (DS 44 Página 1)
+  esSensibleRiesgo: boolean; // true = SI, false = NO
+  categoriaSensibleRiesgo?: CategoriaSensibleRiesgo | '';
 
   // Datos estáticos requeridos DS 44 (Page 1)
   cargo: string;
@@ -55,6 +69,18 @@ export interface CoordinateConfig {
       rut: { x: number; y: number };
       contactoEmergencia: { x: number; y: number };
       telefonoEmergencia: { x: number; y: number };
+      sensibleRiesgo?: {
+        si: { x: number; y: number };
+        no: { x: number; y: number };
+        categorias: {
+          discapacidad: { x: number; y: number };
+          embarazadas: { x: number; y: number };
+          lactancia: { x: number; y: number };
+          adolescentes: { x: number; y: number };
+          adultos_mayores: { x: number; y: number };
+          otra_condicion: { x: number; y: number };
+        };
+      };
     };
     page22: {
       parrafoSuperior?: {
