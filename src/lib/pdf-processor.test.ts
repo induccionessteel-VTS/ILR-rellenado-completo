@@ -41,10 +41,10 @@ test('loadRealDs44Template loads the official attached 22-page document VELTS-D-
   assert.equal(p1.getHeight(), 792, 'Page height must be 792pt (US Letter)');
 });
 
-test('loadRealConsentimientoTemplate loads the official Consentimiento document', async () => {
+test('loadRealConsentimientoTemplate loads the official 2-page Consentimiento document', async () => {
   const doc = await loadRealConsentimientoTemplate();
   assert.ok(doc, 'Consentimiento doc should be defined');
-  assert.equal(doc.getPageCount(), 1, 'Consentimiento document must have 1 page');
+  assert.equal(doc.getPageCount(), 2, 'Consentimiento document must have 2 pages (Hoja 1 Anexo 01 + Hoja 2 Anexo 02)');
 });
 
 test('fillActaDs44 throws error if PDF has less than 22 pages', async () => {
@@ -79,6 +79,10 @@ test('fillActaDs44 throws error if PDF has less than 22 pages', async () => {
 test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', async () => {
   const ds44Doc = await loadRealDs44Template();
   const consentDoc = await loadRealConsentimientoTemplate();
+
+  assert.equal(STATIC_VALUES.area, 'Operaciones', 'Default area must be Operaciones');
+  assert.equal(STATIC_VALUES.horaInicio, '08:00', 'Default horaInicio must be 08:00');
+  assert.equal(STATIC_VALUES.horaTermino, '18:00', 'Default horaTermino must be 18:00');
 
   const formData: WorkerFormData = {
     nombre: 'CARLOS ALBERTO GONZÁLEZ ROJAS',
@@ -120,9 +124,12 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
   assert.ok(ds44Bytes.length > 50000, 'DS 44 real PDF bytes should be greater than 50KB');
   assert.ok(consentBytes.length > 1000, 'Consentimiento PDF bytes should be greater than 1KB');
 
+  const reloadedConsent = await PDFDocument.load(consentBytes);
+  assert.equal(reloadedConsent.getPageCount(), 2, 'Consentimiento must be 2 pages');
+
   const mergedBytes = await mergeDocuments(ds44Bytes, consentBytes);
   const reloadedMerged = await PDFDocument.load(mergedBytes);
-  assert.equal(reloadedMerged.getPageCount(), 23, 'Merged package must be 22 + 1 = 23 pages');
+  assert.equal(reloadedMerged.getPageCount(), 24, 'Merged package must be 22 + 2 = 24 pages');
 });
 
 test('generateSignedDocuments produces separate individual documents and combined bundle', async () => {
@@ -150,10 +157,10 @@ test('generateSignedDocuments produces separate individual documents and combine
   assert.equal(ds44Check.getPageCount(), 22, 'DS44 has 22 pages');
 
   const consentCheck = await PDFDocument.load(result.consentimientoBytes);
-  assert.equal(consentCheck.getPageCount(), 1, 'Consentimiento has 1 page');
+  assert.equal(consentCheck.getPageCount(), 2, 'Consentimiento has 2 pages');
 
   const mergedCheck = await PDFDocument.load(result.mergedBytes);
-  assert.equal(mergedCheck.getPageCount(), 23, 'Merged has 23 pages');
+  assert.equal(mergedCheck.getPageCount(), 24, 'Merged has 24 pages (22 DS 44 + 2 Consentimiento)');
 });
 
 test('base64ToUint8Array parses data URL and raw base64 into valid bytes', () => {

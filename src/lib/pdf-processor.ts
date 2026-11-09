@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { DEFAULT_COORDINATES, MEDICAL_QUESTIONS, NORMAS_SEGURIDAD_ITEMS, STATIC_VALUES } from './constants';
+import { DEFAULT_COORDINATES, MEDICAL_QUESTIONS, NORMAS_SEGURIDAD_ITEMS, STATIC_VALUES, formatDateChileLong } from './constants';
 import { CoordinateConfig, GeneratedDocumentsResult, WorkerFormData } from './types';
 
 /**
@@ -137,13 +137,13 @@ export async function createMockDs44Template(): Promise<PDFDocument> {
 }
 
 /**
- * Carga la plantilla real de Consentimiento si existe, o genera la versión sintética
+ * Carga la plantilla de la Hoja 1 de Consentimiento (Anexo 01 Minera Centinela)
  */
-export async function loadRealConsentimientoTemplate(): Promise<PDFDocument> {
+export async function loadRealConsentimientoHoja1Template(): Promise<PDFDocument> {
   if (typeof window !== 'undefined' && typeof fetch === 'function') {
     const urls = [
-      '/templates/Consentimiento Alcohol y Drogas del Trabajador HOJA 2.pdf',
-      '/templates/consentimiento_alcohol_drogas.pdf',
+      '/templates/HOJA_1_CONSENT_AYD_MUELLE.pdf',
+      '/assets/aistudio/HOJA_1_CONSENT_AYD_MUELLE_ok_33f0eb3e.pdf',
     ];
     for (const url of urls) {
       try {
@@ -163,8 +163,8 @@ export async function loadRealConsentimientoTemplate(): Promise<PDFDocument> {
       const fs = await import('fs');
       const path = await import('path');
       const candidates = [
-        path.join(process.cwd(), 'public', 'templates', 'Consentimiento Alcohol y Drogas del Trabajador HOJA 2.pdf'),
-        path.join(process.cwd(), 'public', 'templates', 'consentimiento_alcohol_drogas.pdf'),
+        path.join(process.cwd(), 'public', 'templates', 'HOJA_1_CONSENT_AYD_MUELLE.pdf'),
+        path.join(process.cwd(), 'public', 'assets', 'aistudio', 'HOJA_1_CONSENT_AYD_MUELLE_ok_33f0eb3e.pdf'),
       ];
       for (const p of candidates) {
         if (fs.existsSync(p)) {
@@ -177,13 +177,87 @@ export async function loadRealConsentimientoTemplate(): Promise<PDFDocument> {
     }
   }
 
-  return await createMockConsentimientoTemplate();
+  // Respaldo sintético para Hoja 1 (Anexo 01)
+  const mockDoc = await PDFDocument.create();
+  const font = await mockDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await mockDoc.embedFont(StandardFonts.HelveticaBold);
+  const p = mockDoc.addPage([612, 792]);
+  p.drawText('ANEXO 01: Consentimiento de Adhesión EECC', { x: 84, y: 710, size: 11, font: boldFont });
+  p.drawText('Consentimiento de Adhesión de Política de Alcohol y Drogas de Minera Centinela para EECC', { x: 140, y: 650, size: 9, font: boldFont });
+  p.drawText('Nombre Completo: JONATHAN POOL ALARCON BARAZORDA', { x: 121, y: 330, size: 9, font });
+  p.drawText('Rut: 22518451-8', { x: 121, y: 307, size: 9, font });
+  p.drawText('Fecha:  31 de Julio 2026', { x: 121, y: 283, size: 9, font });
+  return mockDoc;
 }
 
 /**
- * Genera el documento de respaldo sintético para Consentimiento de Alcohol y Drogas
+ * Carga la plantilla real de Consentimiento de Alcohol y Drogas completa (2 Páginas):
+ * - Hoja 1: Anexo 01 de Minera Centinela (Consentimiento de Adhesión EECC)
+ * - Hoja 2: Anexo 02 Consentimiento del Trabajador Colaborador
  */
-export async function createMockConsentimientoTemplate(): Promise<PDFDocument> {
+export async function loadRealConsentimientoTemplate(): Promise<PDFDocument> {
+  const combinedDoc = await PDFDocument.create();
+
+  // 1. Cargar Hoja 1 (Anexo 01)
+  const hoja1Doc = await loadRealConsentimientoHoja1Template();
+  const [copiedHoja1] = await combinedDoc.copyPages(hoja1Doc, [0]);
+  combinedDoc.addPage(copiedHoja1);
+
+  // 2. Cargar Hoja 2 (Anexo 02)
+  let hoja2Doc: PDFDocument | null = null;
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    const urls = [
+      '/templates/Consentimiento Alcohol y Drogas del Trabajador HOJA 2.pdf',
+      '/templates/consentimiento_alcohol_drogas.pdf',
+    ];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          hoja2Doc = await PDFDocument.load(ab);
+          break;
+        }
+      } catch {
+        // siguiente
+      }
+    }
+  }
+
+  if (!hoja2Doc && typeof process !== 'undefined' && process.cwd) {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const candidates = [
+        path.join(process.cwd(), 'public', 'templates', 'Consentimiento Alcohol y Drogas del Trabajador HOJA 2.pdf'),
+        path.join(process.cwd(), 'public', 'templates', 'consentimiento_alcohol_drogas.pdf'),
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          const buf = fs.readFileSync(p);
+          hoja2Doc = await PDFDocument.load(buf);
+          break;
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (!hoja2Doc) {
+    hoja2Doc = await createMockConsentimientoHoja2();
+  }
+
+  const [copiedHoja2] = await combinedDoc.copyPages(hoja2Doc, [0]);
+  combinedDoc.addPage(copiedHoja2);
+
+  return combinedDoc;
+}
+
+/**
+ * Genera el documento de respaldo sintético para Hoja 2 (Anexo 02)
+ */
+async function createMockConsentimientoHoja2(): Promise<PDFDocument> {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -228,6 +302,57 @@ export async function createMockConsentimientoTemplate(): Promise<PDFDocument> {
 }
 
 /**
+ * Genera el documento de respaldo sintético de 2 páginas para Consentimiento de Alcohol y Drogas
+ */
+export async function createMockConsentimientoTemplate(): Promise<PDFDocument> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  // Hoja 1 (Anexo 01)
+  const page1 = doc.addPage([612, 792]);
+  page1.drawText('ANEXO 01: Consentimiento de Adhesión EECC', { x: 84, y: 710, size: 11, font: boldFont });
+  page1.drawText('Consentimiento de Adhesión de Política de Alcohol y Drogas de Minera Centinela para EECC', { x: 140, y: 650, size: 9, font: boldFont });
+  page1.drawText('Nombre Completo: JONATHAN POOL ALARCON BARAZORDA', { x: 121, y: 330, size: 9, font });
+  page1.drawText('Rut: 22518451-8', { x: 121, y: 307, size: 9, font });
+  page1.drawText('Fecha:  31 de Julio 2026', { x: 121, y: 283, size: 9, font });
+
+  // Hoja 2 (Anexo 02)
+  const page2 = doc.addPage([595.32, 841.92]); // A4
+  page2.drawText('ANEXO 02: Consentimiento del Trabajador Colaborador', {
+    x: 83,
+    y: 647,
+    size: 11,
+    font: boldFont,
+    color: rgb(0.1, 0.2, 0.35),
+  });
+  page2.drawText('Consentimiento de Adhesión de Política de Alcohol y Drogas de Minera Centinela', {
+    x: 117,
+    y: 494,
+    size: 10,
+    font: boldFont,
+  });
+  page2.drawText('Yo____________________________, cédula nacional de identidad N°', {
+    x: 83,
+    y: 446,
+    size: 9,
+    font,
+  });
+  page2.drawText('____________________, declaro que he tomado conocimiento de la Política de Alcohol y', {
+    x: 83,
+    y: 432,
+    size: 9,
+    font,
+  });
+  page2.drawText('Nombre Completo:', { x: 117, y: 304, size: 9, font: boldFont });
+  page2.drawText('Rut:', { x: 117, y: 280, size: 9, font: boldFont });
+  page2.drawText('Fecha:', { x: 117, y: 256, size: 9, font: boldFont });
+  page2.drawText('Firma:', { x: 117, y: 232, size: 9, font: boldFont });
+
+  return doc;
+}
+
+/**
  * Inyecta los datos y firma en el Documento 1: Acta IRL DS 44 (22 Páginas)
  */
 export async function fillActaDs44(
@@ -266,8 +391,9 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  // Autocompletado estático requerido
-  page1.drawText(STATIC_VALUES.fecha, {
+  // Fecha dinámica real del IRL del trabajador
+  const fechaReal = formData.fecha || STATIC_VALUES.fecha;
+  page1.drawText(fechaReal, {
     x: p1Cfg.fecha.x,
     y: p1Cfg.fecha.y,
     size: 8,
@@ -275,7 +401,8 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  page1.drawText(STATIC_VALUES.area, {
+  // Área 'Operaciones'
+  page1.drawText(formData.area || STATIC_VALUES.area, {
     x: p1Cfg.area.x,
     y: p1Cfg.area.y,
     size: 8,
@@ -283,7 +410,8 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  page1.drawText(STATIC_VALUES.horaInicio, {
+  // Horario '08:00 a 18:00'
+  page1.drawText(formData.horaInicio || STATIC_VALUES.horaInicio, {
     x: p1Cfg.horaInicio.x,
     y: p1Cfg.horaInicio.y,
     size: 8,
@@ -291,7 +419,7 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  page1.drawText(STATIC_VALUES.horaTermino, {
+  page1.drawText(formData.horaTermino || STATIC_VALUES.horaTermino, {
     x: p1Cfg.horaTermino.x,
     y: p1Cfg.horaTermino.y,
     size: 8,
@@ -442,7 +570,9 @@ export async function fillActaDs44(
 }
 
 /**
- * Inyecta los datos y firma en el Documento 2: Consentimiento Alcohol y Drogas
+ * Inyecta los datos y firma en el Documento 2: Consentimiento Alcohol y Drogas (2 Páginas):
+ * - Hoja 1 (Índice 0): Anexo 01 de Minera Centinela, reemplazando dinámicamente '31 de Julio 2026' por la fecha real del IRL.
+ * - Hoja 2 (Índice 1): Anexo 02 Consentimiento del Trabajador Colaborador (nombre, rut, fecha real y firma).
  */
 export async function fillConsentimiento(
   pdfDoc: PDFDocument,
@@ -451,12 +581,51 @@ export async function fillConsentimiento(
 ): Promise<PDFDocument> {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Asegurar que el documento conste de dos páginas:
+  // Si se pasa un PDF de 1 página (solo Hoja 2), anteponer Hoja 1 (Anexo 01 Minera Centinela)
+  if (pdfDoc.getPageCount() === 1) {
+    const hoja1Doc = await loadRealConsentimientoHoja1Template();
+    const [hoja1Page] = await pdfDoc.copyPages(hoja1Doc, [0]);
+    pdfDoc.insertPage(0, hoja1Page);
+  }
+
   const pages = pdfDoc.getPages();
-  const page = pages[0];
+  const pageHoja1 = pages[0];
+  const pageHoja2 = pages[1];
+
+  // ---------------------------------------------------------------------------
+  // HOJA 1 (Índice 0): Anexo 01 Minera Centinela
+  // Reemplazo dinámico de '31 de Julio 2026' por la fecha real del IRL del trabajador
+  // ---------------------------------------------------------------------------
+  const fechaReal = formData.fecha || STATIC_VALUES.fecha;
+  const fechaRealLong = formatDateChileLong(fechaReal);
+
+  // Máscara blanca para tapar exactamente '31 de Julio 2026'
+  pageHoja1.drawRectangle({
+    x: 158,
+    y: 278,
+    width: 130,
+    height: 16,
+    color: rgb(1, 1, 1),
+  });
+
+  // Inyección de la fecha real del IRL en formato chileno oficial (negro rgb(0,0,0))
+  pageHoja1.drawText(fechaRealLong, {
+    x: 160,
+    y: 282,
+    size: 8.5,
+    font,
+    color: rgb(0, 0, 0),
+  });
+
+  // ---------------------------------------------------------------------------
+  // HOJA 2 (Índice 1): Anexo 02 Consentimiento del Trabajador Colaborador
+  // ---------------------------------------------------------------------------
   const cfg = coordinates.consentimiento;
 
   // 1. Párrafo legal superior: "Yo [Nombre], cédula nacional de identidad N° [RUT]"
-  page.drawText(formData.nombre.toUpperCase(), {
+  pageHoja2.drawText(formData.nombre.toUpperCase(), {
     x: cfg.nombreParrafo?.x ?? 105,
     y: cfg.nombreParrafo?.y ?? 446,
     size: 8.5,
@@ -464,7 +633,7 @@ export async function fillConsentimiento(
     color: rgb(0, 0, 0),
   });
 
-  page.drawText(formData.rut, {
+  pageHoja2.drawText(formData.rut, {
     x: cfg.rutParrafo?.x ?? 95,
     y: cfg.rutParrafo?.y ?? 432,
     size: 8.5,
@@ -473,7 +642,7 @@ export async function fillConsentimiento(
   });
 
   // 2. Tabla de datos inferior
-  page.drawText(formData.nombre.toUpperCase(), {
+  pageHoja2.drawText(formData.nombre.toUpperCase(), {
     x: cfg.nombre.x,
     y: cfg.nombre.y,
     size: 9,
@@ -481,7 +650,7 @@ export async function fillConsentimiento(
     color: rgb(0, 0, 0),
   });
 
-  page.drawText(formData.rut, {
+  pageHoja2.drawText(formData.rut, {
     x: cfg.rut.x,
     y: cfg.rut.y,
     size: 9,
@@ -489,7 +658,7 @@ export async function fillConsentimiento(
     color: rgb(0, 0, 0),
   });
 
-  page.drawText(STATIC_VALUES.fecha, {
+  pageHoja2.drawText(fechaReal, {
     x: cfg.fecha.x,
     y: cfg.fecha.y,
     size: 9,
@@ -507,7 +676,7 @@ export async function fillConsentimiento(
       signatureImage = await pdfDoc.embedPng(signatureBytes);
     }
 
-    page.drawImage(signatureImage, {
+    pageHoja2.drawImage(signatureImage, {
       x: cfg.firma.x,
       y: cfg.firma.y,
       width: cfg.firma.width,
@@ -515,7 +684,7 @@ export async function fillConsentimiento(
     });
 
     // Subtítulo con Nombre y RUT bajo la firma (Estrictamente color NEGRO)
-    page.drawText(`${formData.nombre.toUpperCase()} - RUT: ${formData.rut}`, {
+    pageHoja2.drawText(`${formData.nombre.toUpperCase()} - RUT: ${formData.rut}`, {
       x: cfg.firma.x,
       y: cfg.firma.y - 12,
       size: 7.5,

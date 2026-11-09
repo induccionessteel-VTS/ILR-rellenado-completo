@@ -478,10 +478,10 @@ export const CALIBRATED_COORDINATES = ${JSON.stringify(coordinates, null, 2)};`;
                   <option value="personaNuevaX">Casilla "Persona Nueva" (X Gigante)</option>
                   <option value="nombre">Nombre Trabajador</option>
                   <option value="rut">R.U.T. Trabajador</option>
-                  <option value="fecha">Fecha ("27-10-2026")</option>
-                  <option value="area">Área ("CONCENTRADUCTO")</option>
-                  <option value="horaInicio">Hora Inicio ("10:00")</option>
-                  <option value="horaTermino">Hora Término ("12:00")</option>
+                  <option value="fecha">Fecha (Dinámica IRL)</option>
+                  <option value="area">Área ("Operaciones")</option>
+                  <option value="horaInicio">Hora Inicio ("08:00")</option>
+                  <option value="horaTermino">Hora Término ("18:00")</option>
                   <option value="contactoEmergencia">Contacto Emergencia</option>
                   <option value="telefonoEmergencia">Teléfono Emergencia</option>
                 </>

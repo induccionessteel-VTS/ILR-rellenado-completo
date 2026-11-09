@@ -41,7 +41,7 @@ export default function App() {
       nombre_trabajador: 'JUAN ESTEBAN MORALES CASTRO',
       rut: '14.892.341-8',
       cargo: 'OPERARIO(A) DE ASEO',
-      area: 'CONCENTRADUCTO',
+      area: 'Operaciones',
       documentos_generados: ['Acta IRL DS 44 (VELTS-D-ACN212-HS-0012)', 'Consentimiento Alcohol y Drogas'],
       ip_address: '190.114.32.18 (Antofagasta / Minera)',
       user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -386,7 +386,7 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-sm font-bold text-white">Previsualización del Documento PDF Generado</h3>
-                <span className="text-xs text-slate-400 ml-2">(23 Páginas: VELTS DS 44 + Consentimiento)</span>
+                <span className="text-xs text-slate-400 ml-2">(24 Páginas: VELTS DS 44 + Consentimiento)</span>
               </div>
               <div className="flex items-center gap-2">
                 <a

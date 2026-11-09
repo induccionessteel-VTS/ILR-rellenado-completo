@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS public.auditoria_documentos (
     nombre_trabajador TEXT NOT NULL,
     rut TEXT NOT NULL,
     cargo TEXT NOT NULL DEFAULT 'OPERARIO(A) DE ASEO',
-    area TEXT NOT NULL DEFAULT 'CONCENTRADUCTO',
+    area TEXT NOT NULL DEFAULT 'Operaciones',
     documento_codigo TEXT NOT NULL DEFAULT 'VELTS-D-ACN212-HS-0012',
     documentos_generados TEXT[] NOT NULL,
     tipo_firma TEXT NOT NULL DEFAULT 'digital_manuscrita', -- 'digital_manuscrita' o 'foto_subida'
@@ -211,7 +211,7 @@ export async function registrarAuditoria(payload: AuditoriaPayload) {
           nombre_trabajador: payload.nombre_trabajador,
           rut: payload.rut,
           cargo: payload.cargo || 'OPERARIO(A) DE ASEO',
-          area: payload.area || 'CONCENTRADUCTO',
+          area: payload.area || 'Operaciones',
           documento_codigo: payload.documento_codigo || 'VELTS-D-ACN212-HS-0012',
           documentos_generados: payload.documentos_generados,
           tipo_firma: payload.tipo_firma || 'digital_manuscrita',
@@ -422,10 +422,10 @@ export async function POST(req: NextRequest) {
     const p1Cfg = COORDENADAS.actaDs44.page1;
     p1.drawText(nombre.toUpperCase(), { x: p1Cfg.nombre.x, y: p1Cfg.nombre.y, size: 8, font: boldFont, color: COLOR_NEGRO });
     p1.drawText(rut, { x: p1Cfg.rut.x, y: p1Cfg.rut.y, size: 8, font: boldFont, color: COLOR_NEGRO });
-    p1.drawText('27-10-2026', { x: p1Cfg.fecha.x, y: p1Cfg.fecha.y, size: 8, font, color: COLOR_NEGRO });
-    p1.drawText('CONCENTRADUCTO', { x: p1Cfg.area.x, y: p1Cfg.area.y, size: 8, font, color: COLOR_NEGRO });
-    p1.drawText('10:00', { x: p1Cfg.horaInicio.x, y: p1Cfg.horaInicio.y, size: 8, font, color: COLOR_NEGRO });
-    p1.drawText('12:00', { x: p1Cfg.horaTermino.x, y: p1Cfg.horaTermino.y, size: 8, font, color: COLOR_NEGRO });
+    p1.drawText(fechaReal, { x: p1Cfg.fecha.x, y: p1Cfg.fecha.y, size: 8, font, color: COLOR_NEGRO });
+    p1.drawText('Operaciones', { x: p1Cfg.area.x, y: p1Cfg.area.y, size: 8, font, color: COLOR_NEGRO });
+    p1.drawText('08:00', { x: p1Cfg.horaInicio.x, y: p1Cfg.horaInicio.y, size: 8, font, color: COLOR_NEGRO });
+    p1.drawText('18:00', { x: p1Cfg.horaTermino.x, y: p1Cfg.horaTermino.y, size: 8, font, color: COLOR_NEGRO });
     p1.drawText(contactoEmergencia || 'NO REGISTRA', { x: p1Cfg.contactoEmergencia.x, y: p1Cfg.contactoEmergencia.y, size: 8, font, color: COLOR_NEGRO });
     p1.drawText(telefonoEmergencia || 'NO REGISTRA', { x: p1Cfg.telefonoEmergencia.x, y: p1Cfg.telefonoEmergencia.y, size: 8, font, color: COLOR_NEGRO });
 
@@ -528,7 +528,7 @@ export async function POST(req: NextRequest) {
     cPage.drawText(rut, { x: cCfg.rutParrafo.x, y: cCfg.rutParrafo.y, size: 8.5, font: boldFontConsent, color: COLOR_NEGRO });
     cPage.drawText(nombre.toUpperCase(), { x: cCfg.nombre.x, y: cCfg.nombre.y, size: 9, font: boldFontConsent, color: COLOR_NEGRO });
     cPage.drawText(rut, { x: cCfg.rut.x, y: cCfg.rut.y, size: 9, font: boldFontConsent, color: COLOR_NEGRO });
-    cPage.drawText('27-10-2026', { x: cCfg.fecha.x, y: cCfg.fecha.y, size: 9, font: fontConsent, color: COLOR_NEGRO });
+    cPage.drawText(fechaReal, { x: cCfg.fecha.x, y: cCfg.fecha.y, size: 9, font: fontConsent, color: COLOR_NEGRO });
     cPage.drawImage(sigImageConsent, {
       x: cCfg.firma.x,
       y: cCfg.firma.y,
@@ -571,11 +571,11 @@ export async function POST(req: NextRequest) {
       nombre_trabajador: nombre.toUpperCase(),
       rut,
       cargo: 'OPERARIO(A) DE ASEO',
-      area: 'CONCENTRADUCTO',
+      area: 'Operaciones',
       documento_codigo: 'VELTS-D-ACN212-HS-0012',
       documentos_generados: [
         'Acta IRL DS 44 - 22 Páginas (VELTS-D-ACN212-HS-0012.00)',
-        'Consentimiento Alcohol y Drogas - 1 Página (CEN-RG-GSS-SGR-004)',
+        'Consentimiento Alcohol y Drogas - 2 Páginas (Anexo 01 y Anexo 02 Minera Centinela)',
       ],
       tipo_firma: tipoFirma,
       ip_address: ip,
@@ -585,7 +585,7 @@ export async function POST(req: NextRequest) {
       url_consentimiento: urlConsent || undefined,
       url_paquete_completo: urlMerged || undefined,
       metadata: {
-        total_paginas: 23,
+        total_paginas: 24,
         respuestas_medicas: respuestasMedicas,
       },
     });
@@ -999,7 +999,7 @@ export default function DocumentSignerPage() {
               {/* Botón 3: Descargar Ambos Fusionados */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
                 <div>
-                  <div className="text-xs font-bold text-indigo-400 mb-1">Paquete Completo (23 Páginas)</div>
+                  <div className="text-xs font-bold text-indigo-400 mb-1">Paquete Completo (24 Páginas)</div>
                   <div className="font-semibold text-white text-sm">Ambos Documentos Unidos</div>
                   <div className="text-[11px] text-slate-400">
                     Acta DS 44 + Consentimiento ({Math.round(generatedData.sizes.merged / 1024)} KB)

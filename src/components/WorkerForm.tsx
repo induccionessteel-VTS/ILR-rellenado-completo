@@ -153,14 +153,14 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
         area: STATIC_VALUES.area,
         documentos_generados: [
           'Acta IRL DS 44 - 22 Páginas (VELTS-D-ACN212-HS-0012.00)',
-          'Consentimiento Alcohol y Drogas - 1 Página (CEN-RG-GSS-SGR-004)',
+          'Consentimiento Alcohol y Drogas - 2 Páginas (Anexo 01 y Anexo 02 Minera Centinela)',
         ],
         metadata: {
           area: STATIC_VALUES.area,
           cargo: STATIC_VALUES.cargoPage1,
           peso_ds44_kb: Math.round(results.ds44Size / 1024),
           peso_consent_kb: Math.round(results.consentimientoSize / 1024),
-          total_paginas: 23,
+          total_paginas: 24,
           normas_seguridad_aprobadas: NORMAS_SEGURIDAD_ITEMS.length,
         },
       };
@@ -563,11 +563,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               <div>
                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold mb-1">
                   <FileText className="w-4 h-4" />
-                  <span>Documento 2 (1 Página)</span>
+                  <span>Documento 2 (2 Páginas)</span>
                 </div>
                 <div className="font-semibold text-white text-sm">Consentimiento Alcohol/Drogas</div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  CEN-RG-GSS-SGR-004 • Párrafo legal completo & firma ({Math.round(generatedResults.consentimientoSize / 1024)} KB)
+                  Anexo 01 & 02 Minera Centinela • Fecha dinámica & firma ({Math.round(generatedResults.consentimientoSize / 1024)} KB)
                 </div>
               </div>
               <div className="flex gap-2">

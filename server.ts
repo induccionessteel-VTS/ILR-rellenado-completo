@@ -46,7 +46,7 @@ const auditDb: AuditRecord[] = [
     nombre_trabajador: 'JUAN ESTEBAN MORALES CASTRO',
     rut: '14.892.341-8',
     cargo: 'OPERARIO(A) DE ASEO',
-    area: 'CONCENTRADUCTO',
+    area: 'Operaciones',
     documentos_generados: ['Acta IRL DS 44 (VELTS-D-ACN212-HS-0012)', 'Consentimiento Alcohol y Drogas'],
     ip_address: '190.114.32.18 (Antofagasta / Minera)',
     user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -64,17 +64,17 @@ app.post('/api/ai-calibrate', async (req, res) => {
 
     const systemPrompt = `Eres un experto técnico en procesamiento y maquetación de PDFs legales con pdf-lib (origen de coordenadas en la esquina inferior izquierda: x crece hacia la derecha, y crece hacia arriba desde la base).
 Tienes los documentos chilenos oficiales:
-1. "Acta IRL DS 44 (VELTS-D-ACN212-HS-0012.00)" tamaño US Letter (612 x 792 pt).
-2. "Consentimiento de Alcohol y Drogas (CEN-RG-GSS-SGR-004)" tamaño A4 (595.32 x 841.92 pt).
+1. "Acta IRL DS 44 (VELTS-D-ACN212-HS-0012.00)" tamaño US Letter (612 x 792 pt, 22 páginas).
+2. "Consentimiento de Alcohol y Drogas" de 2 páginas (Hoja 1 Anexo 01 Minera Centinela con fecha dinámica en reemplazo de '31 de Julio 2026' + Hoja 2 Anexo 02 tamaño A4 595.32 x 841.92 pt).
 
 Reglas de alineación exacta:
 - En Acta DS 44 Página 1:
   - Header 'DATOS PERSONALES' está en y=574.
   - 'Nombre y Apellidos:' está en y=557 (el nombre debe comenzar en x=160, y=557).
   - 'R.U.N:' está en y=557 (el RUT debe comenzar en x=460, y=557).
-  - 'Cargo: OPERARIO(A) DE ASEO' ya está impreso, 'Fecha:' en y=542 (fecha en x=432, y=542).
-  - 'Área:' en y=528 (área en x=84, y=528).
-  - 'Hora de Inicio:' e 'Hora de Termino:' debajo de los títulos: hora inicio en x=440, y=515; hora término en x=525, y=515.
+  - 'Cargo: OPERARIO(A) DE ASEO' ya está impreso, 'Fecha:' en y=542 (fecha real del IRL en x=432, y=542).
+  - 'Área:' en y=528 (área 'Operaciones' en x=84, y=528).
+  - 'Hora de Inicio:' e 'Hora de Termino:' debajo de los títulos: hora inicio '08:00' en x=440, y=515; hora término '18:00' en x=525, y=515.
   - 'Nombre contacto de emergencia:' en x=230, y=505 (desplazado a la derecha para no tocar títulos).
   - 'Teléfono contacto de emergencia:' en x=230, y=492.
   - Casilla 'Persona Nueva': "X" negra (size: 16) centrada dentro de la casilla blanca en x=200, y=464.
@@ -89,14 +89,16 @@ Reglas de alineación exacta:
 - En Acta DS 44 Páginas 10, 11 y 12 (13 módulos de seguridad):
   - Casillas cuadradas en x=58 para los ítems 1 a 13 con 'X' negra.
 
-- En Consentimiento de Alcohol y Drogas (Página 1):
-  - Párrafo legal: 'Yo____________________________,' (nombre en x=105, y=446)
-  - 'cédula nacional de identidad N° ____________________,' (RUT en x=95, y=432)
-  - Tabla de datos:
-    - 'Nombre Completo:' en y=304 (nombre en x=220, y=304).
-    - 'Rut:' en y=280 (RUT en x=155, y=280).
-    - 'Fecha:' en y=256 (fecha '27-10-2026' en x=165, y=256).
-    - 'Firma:' en y=232 (recuadro de firma manuscrita en x=175, y=195, width=145, height=50).
+- En Consentimiento de Alcohol y Drogas:
+  - Hoja 1: Anteponer Anexo 01 de Minera Centinela y reemplazar '31 de Julio 2026' por la fecha real del IRL en formato chileno largo.
+  - Hoja 2 (Anexo 02):
+    - Párrafo legal: 'Yo____________________________,' (nombre en x=105, y=446)
+    - 'cédula nacional de identidad N° ____________________,' (RUT en x=95, y=432)
+    - Tabla de datos:
+      - 'Nombre Completo:' en y=304 (nombre en x=220, y=304).
+      - 'Rut:' en y=280 (RUT en x=155, y=280).
+      - 'Fecha:' en y=256 (fecha real del IRL en x=165, y=256).
+      - 'Firma:' en y=232 (recuadro de firma manuscrita en x=175, y=195, width=145, height=50).
   - Regla Estricta: Todo texto e inyección de "X" debe ser rgb(0, 0, 0) (negro absoluto).
 
 Genera una respuesta JSON pura con la estructura completa de coordenadas calibradas y un resumen explicativo.`;

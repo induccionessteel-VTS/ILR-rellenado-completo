@@ -1,11 +1,69 @@
 import { CoordinateConfig, MedicalQuestion, NormaSeguridadItem } from './types';
 
+/**
+ * Obtiene la fecha real actual en formato chileno DD-MM-YYYY
+ */
+export function getCurrentDateChile(): string {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+/**
+ * Obtiene la fecha real actual en formato textual largo chileno (ej: '09 de Noviembre 2026')
+ */
+export function getCurrentDateChileLong(): string {
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const monthName = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${day} de ${monthName} ${year}`;
+}
+
+/**
+ * Convierte cualquier fecha en formato DD-MM-YYYY, YYYY-MM-DD o vacía a formato largo chileno ('DD de Mes YYYY')
+ */
+export function formatDateChileLong(dateStr?: string): string {
+  if (!dateStr || !dateStr.trim()) return getCurrentDateChileLong();
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const parts = dateStr.trim().split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      const year = parts[0];
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = String(parseInt(parts[2], 10)).padStart(2, '0');
+      if (monthIdx >= 0 && monthIdx < 12) {
+        return `${day} de ${months[monthIdx]} ${year}`;
+      }
+    } else {
+      // DD-MM-YYYY
+      const day = String(parseInt(parts[0], 10)).padStart(2, '0');
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const year = parts[2];
+      if (monthIdx >= 0 && monthIdx < 12) {
+        return `${day} de ${months[monthIdx]} ${year}`;
+      }
+    }
+  }
+  return dateStr;
+}
+
 export const STATIC_VALUES = {
-  fecha: '27-10-2026',
+  fecha: getCurrentDateChile(),
   cargoPage1: 'OPERARIO(A) DE ASEO',
-  area: 'CONCENTRADUCTO',
-  horaInicio: '10:00',
-  horaTermino: '12:00',
+  area: 'Operaciones',
+  horaInicio: '08:00',
+  horaTermino: '18:00',
   cargoPage22: 'Operario de Aseo',
   codigoDocumento: 'VELTS-D-ACN212-HS-0012',
   empresa: 'Steel Ingeniería S.A.',
