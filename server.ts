@@ -183,7 +183,7 @@ app.post('/api/audit', (req, res) => {
     nombre_trabajador: nombre_trabajador || 'DESCONOCIDO',
     rut: rut || 'SIN RUT',
     cargo: cargo || 'OPERARIO(A) DE ASEO',
-    area: area || 'CONCENTRADUCTO',
+    area: area || 'Operaciones',
     documentos_generados: documentos_generados || ['Acta IRL DS 44', 'Consentimiento Alcohol y Drogas'],
     ip_address: `${clientIp} (Faena / Red Interna)`,
     user_agent: req.headers['user-agent'] || 'Desconocido',

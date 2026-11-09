@@ -639,19 +639,20 @@ export async function fillConsentimiento(
   const fechaReal = formData.fecha || STATIC_VALUES.fecha;
   const fechaRealLong = formatDateChileLong(fechaReal);
 
-  // Máscara blanca ajustada exactamente para tapar solo el texto '31 de Julio 2026'
-  // sin invadir ni tapar los trazos adyacentes de la firma que inician en x >= 243
+  // Máscara blanca ajustada con precisión para tapar completamente '31 de Julio 2026'
+  // y cualquier carácter o paréntesis residual visible hasta x=246.5, sin invadir
+  // los trazos azules de la firma original que inician en x >= 248
   pageHoja1.drawRectangle({
-    x: 163,
-    y: 283.5,
-    width: 78,
-    height: 9.0,
+    x: 159,
+    y: 282.8,
+    width: 87.5,
+    height: 11.0,
     color: rgb(1, 1, 1),
   });
 
   // Inyección de la fecha real del IRL en formato chileno oficial (negro rgb(0,0,0))
   pageHoja1.drawText(fechaRealLong, {
-    x: 164,
+    x: 161,
     y: 284.5,
     size: 7.2,
     font,

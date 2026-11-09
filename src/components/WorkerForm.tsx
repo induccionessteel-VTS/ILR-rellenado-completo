@@ -91,8 +91,8 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
   const loadDemoData = () => {
     setFormData({
-      primerNombre: 'CARLOS ALBERTO',
-      primerApellido: 'GONZÁLEZ ROJAS',
+      primerNombre: 'CARLOS',
+      primerApellido: 'GONZÁLEZ',
       nombre: 'CARLOS ALBERTO GONZÁLEZ ROJAS',
       rut: '12.345.678-5',
       contactoEmergencia: 'MARÍA ROJAS VENEGAS (Madre)',
@@ -131,6 +131,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
     if (!formData.primerApellido.trim()) {
       setErrorMessage('Por favor ingrese el Primer Apellido del trabajador.');
+      return;
+    }
+
+    if (!formData.nombre.trim()) {
+      setErrorMessage('Por favor ingrese el Nombre Completo del trabajador en el campo requerido.');
       return;
     }
 
@@ -271,14 +276,13 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
             <input
               type="text"
               required
-              placeholder="Ej: CARLOS ALBERTO"
+              placeholder="Ej: CARLOS"
               value={formData.primerNombre}
               onChange={(e) => {
                 const primerNombre = e.target.value;
                 setFormData((prev) => ({
                   ...prev,
                   primerNombre,
-                  nombre: `${primerNombre.trim()} ${prev.primerApellido.trim()}`.trim(),
                 }));
               }}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
@@ -292,14 +296,13 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
             <input
               type="text"
               required
-              placeholder="Ej: GONZÁLEZ ROJAS"
+              placeholder="Ej: GONZÁLEZ"
               value={formData.primerApellido}
               onChange={(e) => {
                 const primerApellido = e.target.value;
                 setFormData((prev) => ({
                   ...prev,
                   primerApellido,
-                  nombre: `${prev.primerNombre.trim()} ${primerApellido.trim()}`.trim(),
                 }));
               }}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
@@ -333,11 +336,25 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nombre Completo Consolidado
+              Nombre Completo <span className="text-red-400">*</span>
             </label>
-            <div className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 font-medium truncate">
-              {formData.nombre || <span className="text-slate-500 italic">Se genera automáticamente</span>}
-            </div>
+            <input
+              type="text"
+              required
+              placeholder="Ej: CARLOS ALBERTO GONZÁLEZ ROJAS"
+              value={formData.nombre}
+              onChange={(e) => {
+                const nombre = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  nombre,
+                }));
+              }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Ingrese manualmente su nombre completo obligatorio (nombres y ambos apellidos).
+            </span>
           </div>
 
           <div>
@@ -664,7 +681,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {/* Opción 1: Descargar Acta DS 44 (IRL) */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
@@ -727,39 +744,6 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
                 >
                   <Download className="w-3.5 h-3.5" />
                   Descargar CAD
-                </a>
-              </div>
-            </div>
-
-            {/* Opción 3: Descargar Paquete Completo Fusionado (24 Páginas) */}
-            <div className="bg-slate-950 p-4 rounded-xl border border-indigo-500/40 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold mb-1">
-                  <FileCheck2 className="w-4 h-4" />
-                  <span>Paquete Completo (24 Páginas)</span>
-                </div>
-                <div className="font-semibold text-white text-sm">Ambos Fusionados</div>
-                <div className="text-[11px] text-indigo-300 font-mono mt-1 break-all">
-                  {buildDocumentFileName('COMPLETO', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={generatedResults.mergedBlobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1 transition"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  Ver
-                </a>
-                <a
-                  href={generatedResults.mergedBlobUrl}
-                  download={buildDocumentFileName('COMPLETO', formData.primerApellido || 'APELLIDO', formData.primerNombre || 'NOMBRE', formData.rut)}
-                  className="flex-1 py-1.5 px-3 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Descargar Ambos
                 </a>
               </div>
             </div>
