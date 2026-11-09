@@ -396,7 +396,7 @@ export async function fillActaDs44(
   page1.drawText(fechaReal, {
     x: p1Cfg.fecha.x,
     y: p1Cfg.fecha.y,
-    size: 8,
+    size: 8.5,
     font,
     color: rgb(0, 0, 0),
   });
@@ -643,18 +643,26 @@ export async function fillConsentimiento(
   // y cualquier carácter o paréntesis residual visible hasta x=246.5, sin invadir
   // los trazos azules de la firma original que inician en x >= 248
   pageHoja1.drawRectangle({
-    x: 159,
-    y: 282.8,
-    width: 87.5,
-    height: 11.0,
+    x: 155,
+    y: 282.5,
+    width: 91.5,
+    height: 11.5,
     color: rgb(1, 1, 1),
   });
 
-  // Inyección de la fecha real del IRL en formato chileno oficial (negro rgb(0,0,0))
+  // Tamaño de fuente optimizado y acorde al resto del documento (~8.5 a 8.8 pt)
+  // para que se vea perfectamente legible, proporcional y sin superponerse a la firma
+  const maxDateWidth = 88;
+  let dateFontSize = 8.6;
+  while (font.widthOfTextAtSize(fechaRealLong, dateFontSize) > maxDateWidth && dateFontSize > 7.6) {
+    dateFontSize -= 0.1;
+  }
+
+  // Inyección de la fecha real del IRL con tamaño acorde al resto del documento
   pageHoja1.drawText(fechaRealLong, {
-    x: 161,
-    y: 284.5,
-    size: 7.2,
+    x: 156,
+    y: 284.0,
+    size: dateFontSize,
     font,
     color: rgb(0, 0, 0),
   });
