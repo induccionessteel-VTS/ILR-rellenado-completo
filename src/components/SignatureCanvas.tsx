@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Sparkles,
   Upload,
+  Camera,
   Image as ImageIcon,
   X,
   AlertTriangle,
@@ -40,9 +41,11 @@ interface PhotoValidationResult {
 
 export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
   ({ onSignatureChange, height = 185 }, ref) => {
-    const [mode, setMode] = useState<'draw' | 'upload'>('draw');
+    // 3 Modos independientes: 1. Dibujar, 2. Subir Archivo, 3. Tomar Foto
+    const [mode, setMode] = useState<'draw' | 'upload' | 'camera'>('draw');
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const fileUploadInputRef = useRef<HTMLInputElement | null>(null);
+    const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
     // Estado del modo dibujo
     const [isDrawing, setIsDrawing] = useState(false);
@@ -697,9 +700,17 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
       }
     };
 
+    const triggerPhotoInput = () => {
+      if (mode === 'camera') {
+        cameraInputRef.current?.click();
+      } else {
+        fileUploadInputRef.current?.click();
+      }
+    };
+
     useImperativeHandle(ref, () => ({
       getSignatureDataUrl: () => {
-        if (mode === 'upload' && processedSignatureUrl && (validation?.isValid || forceBypassValidation)) {
+        if ((mode === 'upload' || mode === 'camera') && processedSignatureUrl && (validation?.isValid || forceBypassValidation)) {
           return processedSignatureUrl;
         }
         if (mode === 'draw' && hasDrawn && canvasRef.current) {
@@ -708,7 +719,7 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
         return null;
       },
       isEmpty: () => {
-        if (mode === 'upload') return !processedSignatureUrl || (!validation?.isValid && !forceBypassValidation);
+        if (mode === 'upload' || mode === 'camera') return !processedSignatureUrl || (!validation?.isValid && !forceBypassValidation);
         return !hasDrawn;
       },
       clear,
@@ -716,13 +727,16 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
     }));
 
     const isSignatureReady =
-      mode === 'upload' ? !!processedSignatureUrl && (!!validation?.isValid || forceBypassValidation) : hasDrawn;
+      (mode === 'upload' || mode === 'camera')
+        ? !!processedSignatureUrl && (!!validation?.isValid || forceBypassValidation)
+        : hasDrawn;
 
     return (
       <div className="space-y-3">
-        {/* Selector de Modo: Dibujar en Canvas vs Subir Foto */}
+        {/* Selector de Modo: 3 Opciones Independientes */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
-          <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+            {/* Opción 1: Dibujar en Pantalla */}
             <button
               type="button"
               onClick={() => setMode('draw')}
@@ -733,8 +747,10 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
               }`}
             >
               <PenTool className="w-3.5 h-3.5" />
-              <span>Dibujar en Pantalla</span>
+              <span>1. Dibujar en Pantalla</span>
             </button>
+
+            {/* Opción 2: Subir Foto de Firma */}
             <button
               type="button"
               onClick={() => setMode('upload')}
@@ -745,7 +761,21 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Subir / Tomar Foto de Firma</span>
+              <span>2. Subir Foto de Firma</span>
+            </button>
+
+            {/* Opción 3: Tomar Foto de Firma */}
+            <button
+              type="button"
+              onClick={() => setMode('camera')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                mode === 'camera'
+                  ? 'bg-sky-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>3. Tomar Foto con Cámara</span>
             </button>
           </div>
 
@@ -863,25 +893,29 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
         )}
 
         {/* =================================================================== */}
-        {/* MODO 2: SUBIDA Y EDITOR AVANZADO DE FOTO CON AUTO-LUZ Y BINARIZACIÓN */}
+        {/* MODO 2 & 3: SUBIDA O CAPTURA CON CÁMARA + EDITOR DE AUTO-LUZ Y UMBRAL */}
         {/* =================================================================== */}
-        {mode === 'upload' && (
+        {(mode === 'upload' || mode === 'camera') && (
           <div className="space-y-3">
-            {/* Si no hay imagen cargada: Instrucciones y Dropzone */}
+            {/* Si no hay imagen cargada: Instrucciones y Dropzone según modo */}
             {!originalImage ? (
               <div className="space-y-3">
                 {/* Requisitos y Recomendaciones Oficiales */}
                 <div className="bg-sky-950/40 border border-sky-800/60 p-3.5 rounded-xl text-xs space-y-2">
                   <div className="flex items-center gap-2 font-bold text-sky-300">
                     <HelpCircle className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span>Criterios Obligatorios para la Fotografía de Firma:</span>
+                    <span>
+                      {mode === 'camera'
+                        ? 'Consejos para Tomar la Foto con la Cámara:'
+                        : 'Criterios para Subir la Fotografía de Firma:'}
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-300 text-[11px] pt-1">
                     <div className="flex items-start gap-1.5 bg-slate-900/80 p-2 rounded-lg border border-slate-800">
                       <span className="text-base">📄</span>
                       <div>
                         <div className="font-semibold text-white">Hoja Blanca Lisa</div>
-                        <div className="text-slate-400">Sin líneas, cuadros, sombras ni arrugas.</div>
+                        <div className="text-slate-400">Sin líneas, cuadros ni arrugas pronunciadas.</div>
                       </div>
                     </div>
                     <div className="flex items-start gap-1.5 bg-slate-900/80 p-2 rounded-lg border border-slate-800">
@@ -895,40 +929,67 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
                       <span className="text-base">💡</span>
                       <div>
                         <div className="font-semibold text-white">Auto-Balance de Luz</div>
-                        <div className="text-slate-400">El sistema corrige sombras y brillo automáticamente.</div>
+                        <div className="text-slate-400">Aclarará sombras de fondo y nivelará el brillo.</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Dropzone de subida / cámara */}
+                {/* Dropzone interactivo adaptado al modo */}
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={triggerPhotoInput}
                   className="cursor-pointer border-2 border-dashed border-sky-600/50 hover:border-sky-500 rounded-xl p-8 bg-slate-900/60 hover:bg-slate-900 transition flex flex-col items-center justify-center text-center space-y-3"
                 >
                   <div className="p-3 bg-sky-500/10 text-sky-400 rounded-full">
-                    <ImageIcon className="w-6 h-6" />
+                    {mode === 'camera' ? (
+                      <Camera className="w-7 h-7" />
+                    ) : (
+                      <Upload className="w-7 h-7" />
+                    )}
                   </div>
                   <div>
                     <div className="text-sm font-bold text-white">
-                      Haz clic aquí para tomar una foto o subir imagen de la firma
+                      {mode === 'camera'
+                        ? 'Abrir cámara para fotografiar la firma'
+                        : 'Haz clic aquí o arrastra tu archivo de firma'}
                     </div>
                     <div className="text-xs text-slate-400 mt-1">
-                      Formatos: PNG, JPG, JPEG o WebP. Abre directamente la cámara en dispositivos móviles.
+                      {mode === 'camera'
+                        ? 'Activa directamente la cámara del celular o tablet para encuadrar la hoja blanca.'
+                        : 'Formatos soportados: PNG, JPG, JPEG o WebP de tu dispositivo.'}
                     </div>
                   </div>
-                  <span className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow transition">
-                    Tomar / Seleccionar Fotografía
+                  <span className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-2">
+                    {mode === 'camera' ? (
+                      <>
+                        <Camera className="w-4 h-4" />
+                        <span>Abrir Cámara</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Seleccionar Archivo</span>
+                      </>
+                    )}
                   </span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
                 </div>
+
+                {/* Inputs ocultos específicos */}
+                <input
+                  ref={fileUploadInputRef}
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </div>
             ) : (
               <div className="space-y-3">
@@ -974,11 +1035,11 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
                       </button>
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={triggerPhotoInput}
                         className="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Sacar / Subir Nueva Foto</span>
+                        <span>{mode === 'camera' ? 'Tomar Nueva Foto con Cámara' : 'Subir Otro Archivo'}</span>
                       </button>
                       <button
                         type="button"
@@ -988,14 +1049,6 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
                         <PenTool className="w-3.5 h-3.5 text-sky-400" />
                         <span>Firmar Dibujando en Pantalla</span>
                       </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
                     </div>
                   </div>
                 )}
@@ -1042,19 +1095,11 @@ export const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvas
 
                         <button
                           type="button"
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={triggerPhotoInput}
                           className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 rounded-lg text-xs font-semibold transition"
                         >
-                          Cambiar Foto
+                          {mode === 'camera' ? 'Volver a Fotografiar' : 'Cambiar Imagen'}
                         </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
                       </div>
                     </div>
 
