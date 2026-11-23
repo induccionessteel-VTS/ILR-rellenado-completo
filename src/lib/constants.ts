@@ -59,7 +59,7 @@ export function formatDateChileLong(dateStr?: string): string {
 }
 
 export const STATIC_VALUES = {
-  fecha: '20-11-2026',
+  fecha: '21-11-2026',
   cargoPage1: 'OPERARIO(A) DE ASEO',
   area: 'Operaciones',
   horaInicio: '08:00',
