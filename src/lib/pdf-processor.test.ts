@@ -10,7 +10,7 @@ import {
   loadRealConsentimientoTemplate,
   mergeDocuments,
 } from './pdf-processor';
-import { formatRUT, STATIC_VALUES, validateRUT, NORMAS_SEGURIDAD_ITEMS, formatRutForFilename, buildDocumentFileName } from './constants';
+import { formatRUT, STATIC_VALUES, validateRUT, NORMAS_SEGURIDAD_ITEMS, formatRutForFilename, buildDocumentFileName, formatDateChileLong } from './constants';
 import { WorkerFormData } from './types';
 
 // PNG mínimo válido 1x1 transparente para pruebas
@@ -101,6 +101,8 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
   const ds44Doc = await loadRealDs44Template();
   const consentDoc = await loadRealConsentimientoTemplate();
 
+  assert.equal(STATIC_VALUES.fecha, '20-11-2026', 'Default registration date must be 20-11-2026');
+  assert.equal(formatDateChileLong(STATIC_VALUES.fecha), '20 de Noviembre 2026', 'Long format date must be 20 de Noviembre 2026');
   assert.equal(STATIC_VALUES.area, 'Operaciones', 'Default area must be Operaciones');
   assert.equal(STATIC_VALUES.horaInicio, '08:00', 'Default horaInicio must be 08:00');
   assert.equal(STATIC_VALUES.horaTermino, '18:00', 'Default horaTermino must be 18:00');
