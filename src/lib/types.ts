@@ -31,8 +31,10 @@ export type CategoriaSensibleRiesgo =
 export interface WorkerFormData {
   // Datos individuales del trabajador (Paso 1)
   primerNombre: string;
+  segundoNombre?: string;
   primerApellido: string;
-  nombre: string; // Nombre completo (ej: `${primerNombre} ${primerApellido}`)
+  segundoApellido?: string;
+  nombre: string; // Nombre completo ingresado manualmente por el trabajador
   rut: string;
   contactoEmergencia: string;
   telefonoEmergencia: string;

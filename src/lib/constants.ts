@@ -1,29 +1,37 @@
 import { CoordinateConfig, MedicalQuestion, NormaSeguridadItem } from './types';
 
 /**
- * Obtiene la fecha real actual en formato chileno DD-MM-YYYY
+ * Obtiene la fecha real actual de Chile (America/Santiago) en formato DD-MM-YYYY.
+ * Acepta un objeto Date opcional para pruebas deterministas.
  */
-export function getCurrentDateChile(): string {
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const year = now.getFullYear();
+export function getCurrentDateChile(date: Date = new Date()): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Santiago',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).formatToParts(date);
+    const day = parts.find((p) => p.type === 'day')?.value;
+    const month = parts.find((p) => p.type === 'month')?.value;
+    const year = parts.find((p) => p.type === 'year')?.value;
+    if (day && month && year) {
+      return `${day}-${month}-${year}`;
+    }
+  } catch {
+    // Fallback a fecha local del navegador/sistema si Intl timeZone no está disponible
+  }
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
   return `${day}-${month}-${year}`;
 }
 
 /**
- * Obtiene la fecha real actual en formato textual largo chileno (ej: '09 de Noviembre 2026')
+ * Obtiene la fecha real actual de Chile en formato textual largo (ej: '24 de Noviembre 2026')
  */
-export function getCurrentDateChileLong(): string {
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const monthName = months[now.getMonth()];
-  const year = now.getFullYear();
-  return `${day} de ${monthName} ${year}`;
+export function getCurrentDateChileLong(date: Date = new Date()): string {
+  return formatDateChileLong(getCurrentDateChile(date));
 }
 
 /**
@@ -59,7 +67,9 @@ export function formatDateChileLong(dateStr?: string): string {
 }
 
 export const STATIC_VALUES = {
-  fecha: '21-11-2026',
+  get fecha(): string {
+    return getCurrentDateChile();
+  },
   cargoPage1: 'OPERARIO(A) DE ASEO',
   area: 'Operaciones',
   horaInicio: '08:00',
@@ -443,3 +453,79 @@ export function validateRUT(rutFormatted: string): boolean {
 
   return dv === expectedDv;
 }
+
+export interface WorkerNameFields {
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido?: string;
+  nombre: string;
+}
+
+export interface WorkerNameValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+function normalizeNameToken(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Valida que el trabajador haya ingresado sus nombres y apellidos separados
+ * y que el campo manual "Nombre Completo" incluya tanto los nombres como ambos apellidos.
+ */
+export function validateWorkerNames(fields: WorkerNameFields): WorkerNameValidationResult {
+  const primerNombre = fields.primerNombre.trim();
+  const segundoNombre = (fields.segundoNombre || '').trim();
+  const primerApellido = fields.primerApellido.trim();
+  const segundoApellido = (fields.segundoApellido || '').trim();
+  const nombreCompleto = fields.nombre.trim();
+
+  if (!primerNombre) {
+    return { valid: false, error: 'Por favor ingrese el Primer Nombre del trabajador.' };
+  }
+  if (!primerApellido) {
+    return { valid: false, error: 'Por favor ingrese el Primer Apellido del trabajador.' };
+  }
+  if (!segundoApellido) {
+    return { valid: false, error: 'Por favor ingrese el Segundo Apellido del trabajador.' };
+  }
+  if (!nombreCompleto) {
+    return { valid: false, error: 'Por favor ingrese el Nombre Completo del trabajador en el campo requerido.' };
+  }
+
+  const normalizedFull = normalizeNameToken(nombreCompleto);
+  const normPrimerNombre = normalizeNameToken(primerNombre);
+  const normSegundoNombre = normalizeNameToken(segundoNombre);
+  const normPrimerApellido = normalizeNameToken(primerApellido);
+  const normSegundoApellido = normalizeNameToken(segundoApellido);
+
+  if (
+    !normalizedFull.includes(normPrimerNombre) ||
+    !normalizedFull.includes(normPrimerApellido) ||
+    !normalizedFull.includes(normSegundoApellido)
+  ) {
+    return {
+      valid: false,
+      error:
+        'El campo "Nombre Completo" debe incluir su primer nombre y ambos apellidos (no escriba solo los nombres).',
+    };
+  }
+
+  if (normSegundoNombre && !normalizedFull.includes(normSegundoNombre)) {
+    return {
+      valid: false,
+      error:
+        'El campo "Nombre Completo" debe incluir también el segundo nombre o nombres adicionales ingresados.',
+    };
+  }
+
+  return { valid: true };
+}
+

@@ -10,7 +10,7 @@ import {
   loadRealConsentimientoTemplate,
   mergeDocuments,
 } from './pdf-processor';
-import { formatRUT, STATIC_VALUES, validateRUT, NORMAS_SEGURIDAD_ITEMS, formatRutForFilename, buildDocumentFileName, formatDateChileLong } from './constants';
+import { formatRUT, STATIC_VALUES, validateRUT, validateWorkerNames, NORMAS_SEGURIDAD_ITEMS, formatRutForFilename, buildDocumentFileName, formatDateChileLong, getCurrentDateChile, getCurrentDateChileLong } from './constants';
 import { WorkerFormData } from './types';
 
 // PNG mínimo válido 1x1 transparente para pruebas
@@ -65,6 +65,66 @@ test('buildDocumentFileName strictly generates IRL and CAD file names', () => {
   assert.equal(fileNameCompleto, 'COMPLETO_ROJAS_MARÍA_14892341-8.pdf');
 });
 
+test('validateWorkerNames enforces separate names, both surnames, and matching manual full name', () => {
+  // Válido con 2 nombres y 2 apellidos (insensible a tildes y mayúsculas)
+  assert.equal(
+    validateWorkerNames({
+      primerNombre: 'CARLOS',
+      segundoNombre: 'ALBERTO',
+      primerApellido: 'GONZÁLEZ',
+      segundoApellido: 'ROJAS',
+      nombre: 'carlos alberto gonzalez rojas',
+    }).valid,
+    true
+  );
+
+  // Válido con 3 nombres (segundo + tercero en adicionales) y apellido compuesto
+  assert.equal(
+    validateWorkerNames({
+      primerNombre: 'JUAN',
+      segundoNombre: 'PABLO JOSÉ',
+      primerApellido: 'DE LA FUENTE',
+      segundoApellido: 'SOTO',
+      nombre: 'JUAN PABLO JOSE DE LA FUENTE SOTO',
+    }).valid,
+    true
+  );
+
+  // Válido con un solo nombre (sin segundo nombre)
+  assert.equal(
+    validateWorkerNames({
+      primerNombre: 'LUIS',
+      segundoNombre: '',
+      primerApellido: 'PÉREZ',
+      segundoApellido: 'SILVA',
+      nombre: 'LUIS PÉREZ SILVA',
+    }).valid,
+    true
+  );
+
+  // Inválido si solo escribe dos nombres en Nombre Completo sin apellidos
+  const onlyNames = validateWorkerNames({
+    primerNombre: 'CARLOS',
+    segundoNombre: 'ALBERTO',
+    primerApellido: 'GONZÁLEZ',
+    segundoApellido: 'ROJAS',
+    nombre: 'CARLOS ALBERTO',
+  });
+  assert.equal(onlyNames.valid, false);
+  assert.match(onlyNames.error || '', /ambos apellidos/);
+
+  // Inválido si falta el segundo apellido
+  const missingSecondSurname = validateWorkerNames({
+    primerNombre: 'CARLOS',
+    segundoNombre: 'ALBERTO',
+    primerApellido: 'GONZÁLEZ',
+    segundoApellido: '',
+    nombre: 'CARLOS ALBERTO GONZÁLEZ',
+  });
+  assert.equal(missingSecondSurname.valid, false);
+  assert.match(missingSecondSurname.error || '', /Segundo Apellido/);
+});
+
 test('fillActaDs44 throws error if PDF has less than 22 pages', async () => {
   const shortDoc = await PDFDocument.create();
   shortDoc.addPage([612, 792]);
@@ -101,8 +161,12 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
   const ds44Doc = await loadRealDs44Template();
   const consentDoc = await loadRealConsentimientoTemplate();
 
-  assert.equal(STATIC_VALUES.fecha, '21-11-2026', 'Default registration date must be 21-11-2026');
-  assert.equal(formatDateChileLong(STATIC_VALUES.fecha), '21 de Noviembre 2026', 'Long format date must be 21 de Noviembre 2026');
+  const expectedToday = getCurrentDateChile();
+  assert.equal(STATIC_VALUES.fecha, expectedToday, 'Default registration date must match today automatically');
+  assert.equal(formatDateChileLong(STATIC_VALUES.fecha), getCurrentDateChileLong(), 'Long format date must match today in Chilean long format');
+  assert.equal(getCurrentDateChile(new Date('2026-11-24T15:00:00Z')), '24-11-2026', 'getCurrentDateChile formats exact Chile date');
+  assert.equal(getCurrentDateChile(new Date('2026-11-25T01:30:00Z')), '24-11-2026', 'getCurrentDateChile respects America/Santiago timezone before Chilean midnight');
+  assert.equal(getCurrentDateChileLong(new Date('2026-12-01T15:00:00Z')), '01 de Diciembre 2026', 'getCurrentDateChileLong formats Chilean long date automatically');
   assert.equal(STATIC_VALUES.area, 'Operaciones', 'Default area must be Operaciones');
   assert.equal(STATIC_VALUES.horaInicio, '08:00', 'Default horaInicio must be 08:00');
   assert.equal(STATIC_VALUES.horaTermino, '18:00', 'Default horaTermino must be 18:00');

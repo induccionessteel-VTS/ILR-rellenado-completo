@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   FileCheck2,
   AlertCircle,
@@ -18,8 +18,10 @@ import {
   MEDICAL_QUESTIONS,
   NORMAS_SEGURIDAD_ITEMS,
   STATIC_VALUES,
+  getCurrentDateChile,
   formatRUT,
   validateRUT,
+  validateWorkerNames,
   buildDocumentFileName,
 } from '../lib/constants';
 import { generateSignedDocuments } from '../lib/pdf-processor';
@@ -43,9 +45,13 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     return state;
   }, []);
 
-  const [formData, setFormData] = useState<WorkerFormData>({
+  const [currentDate, setCurrentDate] = useState<string>(() => getCurrentDateChile());
+
+  const [formData, setFormData] = useState<WorkerFormData>(() => ({
     primerNombre: '',
+    segundoNombre: '',
     primerApellido: '',
+    segundoApellido: '',
     nombre: '',
     rut: '',
     contactoEmergencia: '',
@@ -53,14 +59,40 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     esSensibleRiesgo: false,
     categoriaSensibleRiesgo: '',
     cargo: STATIC_VALUES.cargoPage1,
-    fecha: STATIC_VALUES.fecha,
+    fecha: getCurrentDateChile(),
     area: STATIC_VALUES.area,
     horaInicio: STATIC_VALUES.horaInicio,
     horaTermino: STATIC_VALUES.horaTermino,
     esPersonaNueva: true,
     respuestasMedicas: initialMedicalState,
     firmaPngBase64: '',
-  });
+  }));
+
+  // Sincronización automática diaria de la fecha de hoy (incluso si la pestaña queda abierta)
+  useEffect(() => {
+    const syncToday = () => {
+      const today = getCurrentDateChile();
+      setCurrentDate((prev) => (prev === today ? prev : today));
+      setFormData((prev) => (prev.fecha === today ? prev : { ...prev, fecha: today }));
+    };
+
+    syncToday();
+    const intervalId = window.setInterval(syncToday, 60_000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncToday();
+      }
+    };
+
+    window.addEventListener('focus', syncToday);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', syncToday);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<'todas' | 'enfermedades' | 'antecedentes' | 'consideraciones'>('todas');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -92,7 +124,9 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
   const loadDemoData = () => {
     setFormData({
       primerNombre: 'CARLOS',
+      segundoNombre: 'ALBERTO',
       primerApellido: 'GONZÁLEZ',
+      segundoApellido: 'ROJAS',
       nombre: 'CARLOS ALBERTO GONZÁLEZ ROJAS',
       rut: '12.345.678-5',
       contactoEmergencia: 'MARÍA ROJAS VENEGAS (Madre)',
@@ -100,7 +134,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
       esSensibleRiesgo: false,
       categoriaSensibleRiesgo: '',
       cargo: STATIC_VALUES.cargoPage1,
-      fecha: STATIC_VALUES.fecha,
+      fecha: getCurrentDateChile(),
       area: STATIC_VALUES.area,
       horaInicio: STATIC_VALUES.horaInicio,
       horaTermino: STATIC_VALUES.horaTermino,
@@ -118,24 +152,21 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
   };
 
   const isRutValid = formData.rut.length >= 8 && validateRUT(formData.rut);
+  const nameValidation = validateWorkerNames(formData);
+  const showFullNameCheck =
+    formData.nombre.trim().length > 0 &&
+    formData.primerNombre.trim().length > 0 &&
+    formData.primerApellido.trim().length > 0 &&
+    (formData.segundoApellido || '').trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setGeneratedResults(null);
 
-    if (!formData.primerNombre.trim()) {
-      setErrorMessage('Por favor ingrese el Primer Nombre del trabajador.');
-      return;
-    }
-
-    if (!formData.primerApellido.trim()) {
-      setErrorMessage('Por favor ingrese el Primer Apellido del trabajador.');
-      return;
-    }
-
-    if (!formData.nombre.trim()) {
-      setErrorMessage('Por favor ingrese el Nombre Completo del trabajador en el campo requerido.');
+    const namesCheck = validateWorkerNames(formData);
+    if (!namesCheck.valid) {
+      setErrorMessage(namesCheck.error || 'Verifique los nombres y apellidos ingresados.');
       return;
     }
 
@@ -160,8 +191,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     setIsProcessing(true);
 
     try {
+      const liveDate = getCurrentDateChile();
+      setCurrentDate(liveDate);
       const dataToProcess: WorkerFormData = {
         ...formData,
+        fecha: liveDate,
         firmaPngBase64: signature,
       };
 
@@ -270,10 +304,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Primer Nombre (o Nombres) <span className="text-red-400">*</span>
+            <label htmlFor="worker-primer-nombre" className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Primer Nombre <span className="text-red-400">*</span>
             </label>
             <input
+              id="worker-primer-nombre"
               type="text"
               required
               placeholder="Ej: CARLOS"
@@ -287,13 +322,41 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               }}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Escriba solo su primer nombre.
+            </span>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Primer Apellido (o Apellidos) <span className="text-red-400">*</span>
+            <label htmlFor="worker-segundo-nombre" className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Segundo Nombre (o adicionales)</span>
+              <span className="text-[10px] font-medium text-slate-400">Opcional</span>
             </label>
             <input
+              id="worker-segundo-nombre"
+              type="text"
+              placeholder="Ej: ALBERTO (o 2° y 3° nombre)"
+              value={formData.segundoNombre || ''}
+              onChange={(e) => {
+                const segundoNombre = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  segundoNombre,
+                }));
+              }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Si tiene segundo o tercer nombre, indíquelo aquí.
+            </span>
+          </div>
+
+          <div>
+            <label htmlFor="worker-primer-apellido" className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Primer Apellido <span className="text-red-400">*</span>
+            </label>
+            <input
+              id="worker-primer-apellido"
               type="text"
               required
               placeholder="Ej: GONZÁLEZ"
@@ -307,10 +370,72 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               }}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Apellido paterno.
+            </span>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <label htmlFor="worker-segundo-apellido" className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Segundo Apellido <span className="text-red-400">*</span>
+            </label>
+            <input
+              id="worker-segundo-apellido"
+              type="text"
+              required
+              placeholder="Ej: ROJAS"
+              value={formData.segundoApellido || ''}
+              onChange={(e) => {
+                const segundoApellido = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  segundoApellido,
+                }));
+              }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Apellido materno.
+            </span>
+          </div>
+
+          <div>
+            <label htmlFor="worker-nombre-completo" className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Nombre Completo <span className="text-red-400">*</span></span>
+              {showFullNameCheck && (
+                <span className={`text-[10px] font-bold ${nameValidation.valid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {nameValidation.valid ? '✓ Nombres y apellidos completos' : '⚠ Faltan nombres o apellidos'}
+                </span>
+              )}
+            </label>
+            <input
+              id="worker-nombre-completo"
+              type="text"
+              required
+              placeholder="Ej: CARLOS ALBERTO GONZÁLEZ ROJAS"
+              value={formData.nombre}
+              onChange={(e) => {
+                const nombre = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  nombre,
+                }));
+              }}
+              className={`w-full bg-slate-950 border rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none ${
+                showFullNameCheck
+                  ? nameValidation.valid
+                    ? 'border-emerald-500/70 focus:border-emerald-500'
+                    : 'border-amber-500/70 focus:border-amber-500'
+                  : 'border-slate-700 focus:border-sky-500'
+              }`}
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Escriba manualmente sus nombres y ambos apellidos completos (tal como en su cédula).
+            </span>
+          </div>
+
+          <div>
+            <label htmlFor="worker-rut" className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
               <span>R.U.T. Chileno <span className="text-red-400">*</span></span>
               {rutTouched && (
                 <span className={`text-[10px] font-bold ${isRutValid ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -319,6 +444,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               )}
             </label>
             <input
+              id="worker-rut"
               type="text"
               required
               placeholder="Ej: 12.345.678-5"
@@ -335,33 +461,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nombre Completo <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Ej: CARLOS ALBERTO GONZÁLEZ ROJAS"
-              value={formData.nombre}
-              onChange={(e) => {
-                const nombre = e.target.value;
-                setFormData((prev) => ({
-                  ...prev,
-                  nombre,
-                }));
-              }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
-            />
-            <span className="text-[11px] text-slate-400 mt-1 block">
-              Ingrese manualmente su nombre completo obligatorio (nombres y ambos apellidos).
-            </span>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="worker-contacto-emergencia" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Nombre Contacto de Emergencia
             </label>
             <input
+              id="worker-contacto-emergencia"
               type="text"
               placeholder="Ej: MARÍA ROJAS VENEGAS (Madre / Cónyuge)"
               value={formData.contactoEmergencia}
@@ -371,10 +475,11 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="worker-telefono-emergencia" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Teléfono Contacto de Emergencia
             </label>
             <input
+              id="worker-telefono-emergencia"
               type="tel"
               placeholder="+56 9 8765 4321"
               value={formData.telefonoEmergencia}
@@ -497,7 +602,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               <Calendar className="w-3.5 h-3.5 text-emerald-400" />
               <span>Fecha Registro:</span>
             </div>
-            <div className="font-bold text-white font-mono">{STATIC_VALUES.fecha}</div>
+            <div className="font-bold text-white font-mono">{currentDate}</div>
           </div>
 
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
