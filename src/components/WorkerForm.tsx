@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   FileCheck2,
   AlertCircle,
@@ -18,7 +18,6 @@ import {
   MEDICAL_QUESTIONS,
   NORMAS_SEGURIDAD_ITEMS,
   STATIC_VALUES,
-  getCurrentDateChile,
   formatRUT,
   validateRUT,
   validateWorkerNames,
@@ -45,8 +44,6 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     return state;
   }, []);
 
-  const [currentDate, setCurrentDate] = useState<string>(() => getCurrentDateChile());
-
   const [formData, setFormData] = useState<WorkerFormData>(() => ({
     primerNombre: '',
     segundoNombre: '',
@@ -59,7 +56,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     esSensibleRiesgo: false,
     categoriaSensibleRiesgo: '',
     cargo: STATIC_VALUES.cargoPage1,
-    fecha: getCurrentDateChile(),
+    fecha: '',
     area: STATIC_VALUES.area,
     horaInicio: STATIC_VALUES.horaInicio,
     horaTermino: STATIC_VALUES.horaTermino,
@@ -67,32 +64,6 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     respuestasMedicas: initialMedicalState,
     firmaPngBase64: '',
   }));
-
-  // Sincronización automática diaria de la fecha de hoy (incluso si la pestaña queda abierta)
-  useEffect(() => {
-    const syncToday = () => {
-      const today = getCurrentDateChile();
-      setCurrentDate((prev) => (prev === today ? prev : today));
-      setFormData((prev) => (prev.fecha === today ? prev : { ...prev, fecha: today }));
-    };
-
-    syncToday();
-    const intervalId = window.setInterval(syncToday, 60_000);
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        syncToday();
-      }
-    };
-
-    window.addEventListener('focus', syncToday);
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', syncToday);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<'todas' | 'enfermedades' | 'antecedentes' | 'consideraciones'>('todas');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -134,7 +105,7 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
       esSensibleRiesgo: false,
       categoriaSensibleRiesgo: '',
       cargo: STATIC_VALUES.cargoPage1,
-      fecha: getCurrentDateChile(),
+      fecha: '',
       area: STATIC_VALUES.area,
       horaInicio: STATIC_VALUES.horaInicio,
       horaTermino: STATIC_VALUES.horaTermino,
@@ -191,11 +162,9 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
     setIsProcessing(true);
 
     try {
-      const liveDate = getCurrentDateChile();
-      setCurrentDate(liveDate);
       const dataToProcess: WorkerFormData = {
         ...formData,
-        fecha: liveDate,
+        fecha: formData.fecha.trim(),
         firmaPngBase64: signature,
       };
 
@@ -602,7 +571,8 @@ export function WorkerForm({ coordinates, onDocumentGenerated }: Props) {
               <Calendar className="w-3.5 h-3.5 text-emerald-400" />
               <span>Fecha Registro:</span>
             </div>
-            <div className="font-bold text-white font-mono">{currentDate}</div>
+            <div className="font-bold text-slate-200">Sin fecha (en blanco)</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Para rellenar después</div>
           </div>
 
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">

@@ -161,9 +161,8 @@ test('fillActaDs44 populates pages 1, 8, 9, 10-12, 22 and embeds signature', asy
   const ds44Doc = await loadRealDs44Template();
   const consentDoc = await loadRealConsentimientoTemplate();
 
-  const expectedToday = getCurrentDateChile();
-  assert.equal(STATIC_VALUES.fecha, expectedToday, 'Default registration date must match today automatically');
-  assert.equal(formatDateChileLong(STATIC_VALUES.fecha), getCurrentDateChileLong(), 'Long format date must match today in Chilean long format');
+  assert.equal(STATIC_VALUES.fecha, '', 'Default registration date must be blank so it can be filled in later');
+  assert.equal(formatDateChileLong('24-11-2026'), '24 de Noviembre 2026', 'formatDateChileLong formats dd-mm-yyyy to Chilean long format');
   assert.equal(getCurrentDateChile(new Date('2026-11-24T15:00:00Z')), '24-11-2026', 'getCurrentDateChile formats exact Chile date');
   assert.equal(getCurrentDateChile(new Date('2026-11-25T01:30:00Z')), '24-11-2026', 'getCurrentDateChile respects America/Santiago timezone before Chilean midnight');
   assert.equal(getCurrentDateChileLong(new Date('2026-12-01T15:00:00Z')), '01 de Diciembre 2026', 'getCurrentDateChileLong formats Chilean long date automatically');
@@ -264,4 +263,41 @@ test('base64ToUint8Array parses data URL and raw base64 into valid bytes', () =>
   assert.equal(bytes[1], 0x50);
   assert.equal(bytes[2], 0x4e);
   assert.equal(bytes[3], 0x47);
+});
+
+test('blank fecha omits date text from IRL and CAD while preserving valid documents', async () => {
+  const baseData: WorkerFormData = {
+    primerNombre: 'MARÍA',
+    primerApellido: 'ROJAS',
+    nombre: 'MARÍA FERNANDA ROJAS SILVA',
+    rut: '12.345.678-5',
+    contactoEmergencia: 'PEDRO ROJAS',
+    telefonoEmergencia: '+56 9 9999 8888',
+    esSensibleRiesgo: false,
+    cargo: STATIC_VALUES.cargoPage1,
+    fecha: '',
+    area: STATIC_VALUES.area,
+    horaInicio: STATIC_VALUES.horaInicio,
+    horaTermino: STATIC_VALUES.horaTermino,
+    esPersonaNueva: true,
+    respuestasMedicas: {},
+    firmaPngBase64: SAMPLE_PNG_BASE64,
+  };
+
+  const blankResult = await generateSignedDocuments(baseData);
+  const datedResult = await generateSignedDocuments({ ...baseData, fecha: '25-11-2026' });
+
+  assert.ok(
+    blankResult.ds44Bytes.byteLength !== datedResult.ds44Bytes.byteLength,
+    'IRL PDF with blank date must differ from dated IRL PDF'
+  );
+  assert.ok(
+    blankResult.consentimientoBytes.byteLength !== datedResult.consentimientoBytes.byteLength,
+    'CAD PDF with blank date must differ from dated CAD PDF'
+  );
+
+  const blankIrl = await PDFDocument.load(blankResult.ds44Bytes);
+  const blankCad = await PDFDocument.load(blankResult.consentimientoBytes);
+  assert.equal(blankIrl.getPageCount(), 22);
+  assert.equal(blankCad.getPageCount(), 2);
 });

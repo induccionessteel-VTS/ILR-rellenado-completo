@@ -391,15 +391,17 @@ export async function fillActaDs44(
     color: rgb(0, 0, 0),
   });
 
-  // Fecha dinámica real del IRL del trabajador
-  const fechaReal = formData.fecha || STATIC_VALUES.fecha;
-  page1.drawText(fechaReal, {
-    x: p1Cfg.fecha.x,
-    y: p1Cfg.fecha.y,
-    size: 8.5,
-    font,
-    color: rgb(0, 0, 0),
-  });
+  // Fecha del IRL del trabajador (si viene vacía, se deja en blanco para rellenar después)
+  const fechaReal = (formData.fecha ?? '').trim();
+  if (fechaReal) {
+    page1.drawText(fechaReal, {
+      x: p1Cfg.fecha.x,
+      y: p1Cfg.fecha.y,
+      size: 8.5,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  }
 
   // Área 'Operaciones'
   page1.drawText(formData.area || STATIC_VALUES.area, {
@@ -634,10 +636,9 @@ export async function fillConsentimiento(
 
   // ---------------------------------------------------------------------------
   // HOJA 1 (Índice 0): Anexo 01 Minera Centinela
-  // Reemplazo dinámico de '31 de Julio 2026' por la fecha real del IRL del trabajador
+  // Borra '31 de Julio 2026' con máscara blanca y deja en blanco si no se indica fecha
   // ---------------------------------------------------------------------------
-  const fechaReal = formData.fecha || STATIC_VALUES.fecha;
-  const fechaRealLong = formatDateChileLong(fechaReal);
+  const fechaReal = (formData.fecha ?? '').trim();
 
   // Máscara blanca ajustada con precisión para tapar completamente '31 de Julio 2026'
   // y cualquier carácter o paréntesis residual visible hasta x=246.5, sin invadir
@@ -650,22 +651,23 @@ export async function fillConsentimiento(
     color: rgb(1, 1, 1),
   });
 
-  // Tamaño de fuente optimizado y acorde al resto del documento (~8.5 a 8.8 pt)
-  // para que se vea perfectamente legible, proporcional y sin superponerse a la firma
-  const maxDateWidth = 88;
-  let dateFontSize = 8.6;
-  while (font.widthOfTextAtSize(fechaRealLong, dateFontSize) > maxDateWidth && dateFontSize > 7.6) {
-    dateFontSize -= 0.1;
-  }
+  if (fechaReal) {
+    const fechaRealLong = formatDateChileLong(fechaReal);
+    // Tamaño de fuente optimizado y acorde al resto del documento (~8.5 a 8.8 pt)
+    const maxDateWidth = 88;
+    let dateFontSize = 8.6;
+    while (font.widthOfTextAtSize(fechaRealLong, dateFontSize) > maxDateWidth && dateFontSize > 7.6) {
+      dateFontSize -= 0.1;
+    }
 
-  // Inyección de la fecha real del IRL con tamaño acorde al resto del documento
-  pageHoja1.drawText(fechaRealLong, {
-    x: 156,
-    y: 284.0,
-    size: dateFontSize,
-    font,
-    color: rgb(0, 0, 0),
-  });
+    pageHoja1.drawText(fechaRealLong, {
+      x: 156,
+      y: 284.0,
+      size: dateFontSize,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // HOJA 2 (Índice 1): Anexo 02 Consentimiento del Trabajador Colaborador
@@ -706,13 +708,15 @@ export async function fillConsentimiento(
     color: rgb(0, 0, 0),
   });
 
-  pageHoja2.drawText(fechaReal, {
-    x: cfg.fecha.x,
-    y: cfg.fecha.y,
-    size: 9,
-    font,
-    color: rgb(0, 0, 0),
-  });
+  if (fechaReal) {
+    pageHoja2.drawText(fechaReal, {
+      x: cfg.fecha.x,
+      y: cfg.fecha.y,
+      size: 9,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  }
 
   // 3. Firma digital manuscrita
   if (formData.firmaPngBase64) {
